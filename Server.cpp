@@ -100,7 +100,7 @@ int Server::parseIncomingMessage(const std::string buff, const int i)
 	if (substr == "USER")
 		return (commands.user(user, buff.substr(4, buff.size() - 4)));
 	if (substr == "JOIN")
-		return (commands.join(user, buff.substr(4, buff.size() - 4), this->_users));
+		return (commands.join(user, buff.substr(4, buff.size() - 4), this->_channels));
 	return (-1);
 }
 

@@ -2,6 +2,7 @@
 
 #include "User.hpp"
 #include "Commands.hpp"
+#include "Channel.hpp"
 #include <vector>
 #include <stdlib.h>
 #include <ctype.h>
@@ -21,7 +22,7 @@
 class Server
 {
 private:
-	// std::vector<Channel>	_channels;
+	std::vector<Channel>	_channels;
 	std::vector<User>		_users;
 	size_t					_port;
 	std::string				sPort;
