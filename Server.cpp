@@ -81,8 +81,8 @@ void	Server::socketSetup(int &listenfd, struct sockaddr_in &servAddr)
 
 int Server::parseIncomingMessage(const std::string buff, const int i)
 {
-	User& 		user = _users[i];
-	Commands	commands;
+	User& 			user = _users[i];
+	static Commands	commands;
 
 	if (buff.length() < 4)
 		return (-1);

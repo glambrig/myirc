@@ -12,13 +12,17 @@ Channel::Channel(const Channel& copy)
 {
 	if (this != &copy)
 	{
-		*this = copy;
+		this->_name = copy.getChanName();
+		this->_chanMembers = copy.getChanMembers();
+		this->flags = copy.flags;
 	}
 }
 
 Channel& Channel::operator=(const Channel& rhs)
 {
-	(void)rhs;
+	this->_name = rhs.getChanName();
+	this->_chanMembers = rhs.getChanMembers();
+	this->flags = rhs.flags;
 	return (*this);
 }
 
@@ -27,7 +31,7 @@ Channel::~Channel()
 
 }
 
-std::string			Channel::getChanName() const
+std::string	Channel::getChanName() const
 {
 	return (this->_name);
 }

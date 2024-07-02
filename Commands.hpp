@@ -32,8 +32,16 @@
 #define ERR_BADCHANMASK 476
 #define S_ERR_BADCHANMASK "476"
 
+//PRIVMSG codes
+#define ERR_NORECIPIENT 411
+#define S_ERR_NORECIPIENT "411"
+
 typedef struct Commands
 {
+	//If the nickname is invalid, the server will still run the USER command that was sent along with the first NICK command.
+		//This is problematic because USER needs a nickname to return properly.
+		//As such, we store the user command in here, and execute it after receiving the correct nick.
+	std::string userCommand;
 	std::list<std::string>	cmdList;
 
 	Commands();
@@ -43,8 +51,10 @@ typedef struct Commands
 	bool	isValidCommand(const std::string &s) const;
 	int		sendNumericReply(const User &user, const std::string& err) const;
 
-	int		nick(User& user, const std::string buff, std::vector<User> userList) const;
+	int		nick(User& user, const std::string buff, std::vector<User> userList);
 	int		parseUserBuff(const std::string &buff) const;
-	int		user(User& user, const std::string buff) const;
-	int		join(User& user, const std::string buff, std::vector<Channel> channelList) const;
+	int		user(User& user, std::string buff);
+	int		join(User& user, const std::string buff, std::vector<Channel> &channelList) const;
+	int		privmsg(User& user, const std::string &buffer, std::vector<Channel> channelList, std::vector<User> userList) const;
+
 }	Commands;
