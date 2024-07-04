@@ -216,7 +216,7 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 		BADCHANMASK += " :Bad Channel Mask";
 		return (sendNumericReply(user, BADCHANMASK));
 	}
-	std::string buff = buffer.substr(1, buffer.size() - 3);	//removing the space and \r\n to leave only the rest
+	std::string buff = buffer.substr(1, buffer.size() - 3);	//removing the space and \r\n to leave only '#channelname'
 	
 	bool	channelExists = false;
 	Channel chan;
@@ -226,6 +226,7 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 		{
 			channelExists = true;
 			chan = *it;
+			break ;
 		}
 	}
 	if (channelExists == true)
@@ -237,21 +238,19 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 				if (it->flags.inviteOnly == false)
 				{
 					//if there are other users, send JOIN to them
-					if (it->getChanMembers().size() > 1)
+					if (it->getChanMembers().size() > 0)
 					{
 						std::vector<User> members = it->getChanMembers();
-						std::string joinRelayMessage(user.nickname + "JOIN " + buff);
+						std::string joinRelayMessage(':' + user.nickname + '!' + user.username + '@' + "localhost " + "JOIN " + buff + "\r\n");
 						for (std::vector<User>::const_iterator subIter = members.begin(); subIter != members.end(); subIter++)
 						{
-							//supposed to send "full client identifier" (nickname!username@hostname), but just sending username for now
-							sendNumericReply(*subIter, joinRelayMessage);
+							//sending "full client identifier" (nickname!username@hostname)
+							send(subIter->socket, joinRelayMessage.c_str(), joinRelayMessage.size(), 0);
 						}
 					}
 				}
 				//join the channel
 				it->addMember(user);
-				std::string joinReply("JOIN " + buff);
-				sendNumericReply(user, joinReply);
 				break ;
 			}
 		}
@@ -259,20 +258,20 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 	else
 	{
 		Channel newChan;
-		newChan.setChanName(buff.substr(1, buff.size() - 1));
+		newChan.setChanName(buff);//.substr(1, buff.size() - 1)
 		newChan.addMember(user);
 		channelList.push_back(newChan);
-		std::string joinReply(":" + user.nickname + "!" + user.username + "@" + "localhost"
-			+ " JOIN " + buff + "\r\n");
-		send(user.socket, joinReply.c_str(), joinReply.size(), 0);
 	}
+	std::string joinReply(":" + user.nickname + "!" + user.username + "@" + "localhost"
+		+ " JOIN " + buff + "\r\n");
+	send(user.socket, joinReply.c_str(), joinReply.size(), 0);
 	return (0);
 }
 
 /*:<source> PRIVMSG <target> :<message>*/
-int		Commands::privmsg(User& user, const std::string &buffer, std::vector<Channel> channelList, std::vector<User> userList) const
+int		Commands::privmsg(User& user, const std::string &buffer, const std::vector<Channel> channelList, const std::vector<User> userList) const
 {
-	//check if it's a user, or if it's a channel
+	//check if target is a user, or if it's a channel
 		//if neither, error NOSUCHNICK i think
 		//if user, send it
 		//if channel, find out who's in it, and send to all of them
@@ -288,18 +287,30 @@ int		Commands::privmsg(User& user, const std::string &buffer, std::vector<Channe
 	}
 	std::string buff = buffer.substr(1, buffer.size() - 1);
 	std::string target;
+	std::string message;
 	for (size_t i = 0; i < buff.size(); i++)
 	{
 		if (buff[i] == ' ')
 		{
-			target = buff.substr(0, i - 1);
+			target = buff.substr(0, i);
+			message = buff.substr(i + 2, buff.size() - i);
 			break ;
 		}
 	}
 	for (std::vector<Channel>::const_iterator it = channelList.begin(); it != channelList.end(); it++)
 	{
-		std::cout << "channame:" << (*it).getChanName() << std::endl;
-		// if (target == it->getChanName())
+		if (target == it->getChanName())
+		{
+			std::vector<User> chanMembers = it->getChanMembers();
+			//Full client identifier + PRIVMSG + #channel + :message
+			std::string fullMsg(':' + user.nickname + '!' + user.username + "@localhost " + "PRIVMSG" + buffer);
+			for (size_t i = 0; i < chanMembers.size(); i++)
+			{
+				if (chanMembers[i].nickname != user.nickname)
+					send(chanMembers[i].socket, fullMsg.c_str(), fullMsg.size(), 0);
+			}
+			break ;
+		}
 	}
 	return (0);
 }

@@ -88,12 +88,12 @@ int Server::parseIncomingMessage(const std::string buff, const int i)
 		return (-1);
 	std::string substr = buff.substr(0, 4);
 	
-	for (size_t k = 0; k < 4; k++)
-	{
-		if (std::isalpha(substr[k]) && std::isupper(substr[k]) && commands.isValidCommand(substr))
-			continue ;
-		return (-1);
-	}
+	// for (size_t k = 0; k < 4; k++)
+	// {
+	// 	if (std::isalpha(substr[k]) && std::isupper(substr[k]) && commands.isValidCommand(substr))
+	// 		continue ;
+	// 	return (-1);
+	// }
 	//and other commands to be added later
  	if (substr == "NICK")
 		return (commands.nick(user, buff.substr(4, buff.size() - 4), this->_users));
@@ -101,6 +101,8 @@ int Server::parseIncomingMessage(const std::string buff, const int i)
 		return (commands.user(user, buff.substr(4, buff.size() - 4)));
 	if (substr == "JOIN")
 		return (commands.join(user, buff.substr(4, buff.size() - 4), this->_channels));
+	if (buff.substr(0, 7) == "PRIVMSG")
+		return (commands.privmsg(user, buff.substr(7, buff.size() - 7), this->_channels, this->_users));
 	return (-1);
 }
 

@@ -17,8 +17,6 @@
 #include <stdio.h>
 #include <map>
 
-// typedef struct Commands Commands;
-
 class Server
 {
 private:

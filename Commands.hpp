@@ -55,6 +55,6 @@ typedef struct Commands
 	int		parseUserBuff(const std::string &buff) const;
 	int		user(User& user, std::string buff);
 	int		join(User& user, const std::string buff, std::vector<Channel> &channelList) const;
-	int		privmsg(User& user, const std::string &buffer, std::vector<Channel> channelList, std::vector<User> userList) const;
+	int		privmsg(User& user, const std::string &buffer, const std::vector<Channel> channelList, const std::vector<User> userList) const;
 
 }	Commands;
