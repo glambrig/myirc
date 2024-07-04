@@ -268,6 +268,51 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 	return (0);
 }
 
+/*<client> <nickname> :No such nick/channel*/
+int	Commands::privmsgUser(User& user, const std::string &buffer, const std::string& target, const std::vector<User> &userList) const
+{
+	size_t messagePos = buffer.find(":", 0);
+	if (messagePos == std::string::npos)
+		return (-1);
+	const std::string message(buffer.substr(messagePos));
+
+	for (std::vector<User>::const_iterator it = userList.begin(); it != userList.end(); it++)
+	{
+		if (it + 1 == userList.end() && target != it->nickname)
+		{
+			std::string NOSUCHNICK(S_ERR_NOSUCHNICK + ' ' + target + ' ' + user.nickname + " :No such nick/channel");
+			return (sendNumericReply(user, NOSUCHNICK));
+		}
+		if (target == it->nickname)
+		{
+			std::string fullMsg(':' + user.nickname + '!' + user.username + "@localhost " + "PRIVMSG" + buffer);
+			return (send(it->socket, fullMsg.c_str(), fullMsg.size(), 0));
+		}
+	}
+	return (0);
+}
+
+int	Commands::privmsgChannel(User& user, const std::string &buffer, const std::string &target, const std::vector<Channel> channelList) const
+{
+	for (std::vector<Channel>::const_iterator it = channelList.begin(); it != channelList.end(); it++)
+	{
+		if (target == it->getChanName())
+		{
+			std::vector<User> chanMembers = it->getChanMembers();
+			//Full client identifier + PRIVMSG + #channel + :message
+			std::string fullMsg(':' + user.nickname + '!' + user.username + "@localhost " + "PRIVMSG" + buffer);
+			for (std::vector<User>::iterator subiter = chanMembers.begin(); subiter != chanMembers.end(); subiter++)
+			{
+				if (subiter->nickname != user.nickname)
+					send(subiter->socket, fullMsg.c_str(), fullMsg.size(), 0);
+			}
+			return (0);
+		}
+	}
+	return (0);
+}
+
+
 /*:<source> PRIVMSG <target> :<message>*/
 int		Commands::privmsg(User& user, const std::string &buffer, const std::vector<Channel> channelList, const std::vector<User> userList) const
 {
@@ -275,8 +320,8 @@ int		Commands::privmsg(User& user, const std::string &buffer, const std::vector<
 		//if neither, error NOSUCHNICK i think
 		//if user, send it
 		//if channel, find out who's in it, and send to all of them
-	(void)userList;
 
+	// (void)userList;
 	if (buffer.empty() == true || buffer[0] != ' ')
 	{
 		std::string NORECIPIENT = S_ERR_NORECIPIENT;
@@ -297,20 +342,9 @@ int		Commands::privmsg(User& user, const std::string &buffer, const std::vector<
 			break ;
 		}
 	}
-	for (std::vector<Channel>::const_iterator it = channelList.begin(); it != channelList.end(); it++)
-	{
-		if (target == it->getChanName())
-		{
-			std::vector<User> chanMembers = it->getChanMembers();
-			//Full client identifier + PRIVMSG + #channel + :message
-			std::string fullMsg(':' + user.nickname + '!' + user.username + "@localhost " + "PRIVMSG" + buffer);
-			for (size_t i = 0; i < chanMembers.size(); i++)
-			{
-				if (chanMembers[i].nickname != user.nickname)
-					send(chanMembers[i].socket, fullMsg.c_str(), fullMsg.size(), 0);
-			}
-			break ;
-		}
-	}
+	if (target[0] == '#')
+		return (privmsgChannel(user, buffer, target, channelList));
+	else
+		return (privmsgUser(user, buffer, target, userList));
 	return (0);
 }

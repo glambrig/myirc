@@ -35,6 +35,8 @@
 //PRIVMSG codes
 #define ERR_NORECIPIENT 411
 #define S_ERR_NORECIPIENT "411"
+#define ERR_NOSUCHNICK 401
+#define S_ERR_NOSUCHNICK "401"
 
 typedef struct Commands
 {
@@ -56,5 +58,7 @@ typedef struct Commands
 	int		user(User& user, std::string buff);
 	int		join(User& user, const std::string buff, std::vector<Channel> &channelList) const;
 	int		privmsg(User& user, const std::string &buffer, const std::vector<Channel> channelList, const std::vector<User> userList) const;
+	int		privmsgUser(User& user, const std::string &buffer, const std::string& target, const std::vector<User> &userList) const;
+	int		privmsgChannel(User& user, const std::string &buffer, const std::string &target, const std::vector<Channel> channelList) const;
 
 }	Commands;
