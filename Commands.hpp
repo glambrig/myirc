@@ -31,12 +31,26 @@
 //JOIN codes
 #define ERR_BADCHANMASK 476
 #define S_ERR_BADCHANMASK "476"
+#define RPL_TOPIC 332
+#define S_RPL_TOPIC "332"
 
 //PRIVMSG codes
 #define ERR_NORECIPIENT 411
 #define S_ERR_NORECIPIENT "411"
 #define ERR_NOSUCHNICK 401
 #define S_ERR_NOSUCHNICK "401"
+
+//TOPIC codes
+#define RPL_NOTOPIC 331
+#define S_RPL_NOTOPIC "331"
+#define RPL_TOPIC 332
+#define S_RPL_TOPIC "332"
+#define ERR_CHANOPRIVSNEEDED 482
+#define S_ERR_CHANOPRIVSNEEDED "482"
+#define ERR_NOTONCHANNEL 442
+#define S_ERR_NOTONCHANNEL "442"
+#define RPL_TOPICWHOTIME 333
+#define S_RPL_TOPICWHOTIME "333"
 
 typedef struct Commands
 {
@@ -61,4 +75,6 @@ typedef struct Commands
 	int		privmsgUser(User& user, const std::string &buffer, const std::string& target, const std::vector<User> &userList) const;
 	int		privmsgChannel(User& user, const std::string &buffer, const std::string &target, const std::vector<Channel> channelList) const;
 
+	/*Operator Commands*/
+	int		topic(const User& user, const std::string& buff, std::vector<Channel> &channelList) const;
 }	Commands;

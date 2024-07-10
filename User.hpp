@@ -11,5 +11,4 @@ typedef struct	User
 	std::string	nickname;
 	int 		socket;
 
-	void		setup(const std::string &buff);
 }	User;

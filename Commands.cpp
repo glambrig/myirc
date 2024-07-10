@@ -11,6 +11,8 @@ Commands::Commands()
 	cmdList.push_back(newCmd);
 	newCmd = "USER";
 	cmdList.push_back(newCmd);
+	newCmd = "TOPIC";
+	cmdList.push_back(newCmd);
 	newCmd = "PRIVMSG";
 	cmdList.push_back(newCmd);
 	hasRegistered = false;
@@ -222,7 +224,7 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 	Channel chan;
 	for (std::vector<Channel>::iterator it = channelList.begin(); it != channelList.end(); it++)
 	{
-		if (buff == (*it).getChanName())
+		if (buff == it->getChanName())
 		{
 			channelExists = true;
 			chan = *it;
@@ -260,11 +262,19 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 		Channel newChan;
 		newChan.setChanName(buff);//.substr(1, buff.size() - 1)
 		newChan.addMember(user);
+		newChan.flags.operatorList.push_back(user);
 		channelList.push_back(newChan);
 	}
-	std::string joinReply(":" + user.nickname + "!" + user.username + "@" + "localhost"
-		+ " JOIN " + buff + "\r\n");
+	std::string joinReply(":" + user.nickname + "!" + user.username + "@" + "localhost" + " JOIN " + buff + "\r\n");
+	// if (chan.getTopic().empty() == false)
+	// {
+	// 	// std::string RPLTOPIC(S_RPL_TOPIC + ' ' + user.nickname + ' ' + buff + ' ');
+	// 	// RPLTOPIC += chan.getTopic();
+	// 	// RPLTOPIC += "\r\n";
+	// 	// sendNumericReply(user, RPLTOPIC);
+	// }
 	send(user.socket, joinReply.c_str(), joinReply.size(), 0);
+
 	return (0);
 }
 

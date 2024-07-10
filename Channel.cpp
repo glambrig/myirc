@@ -5,7 +5,7 @@ Channel::Channel()
 	flags.inviteOnly = false;
 	flags.topicOpOnly = false;
 	flags.pswdIsSet.first = false;
-	flags.usrLimit.first = false;
+	flags.userLimit.first = false;
 }
 
 Channel::Channel(const Channel& copy)
@@ -41,6 +41,30 @@ void	Channel::setChanName(const std::string name)
 	this->_name = name;
 }
 
+void	Channel::setChanTopic(const std::string s)
+{
+	if (s.empty())
+		this->_topic.clear();
+	else
+		this->_topic = s;
+}
+
+std::string	Channel::getChanTopic() const
+{
+	return (this->_topic);
+}
+
+/*Sets the string 's' as the last user to have set the channel's topic*/
+void	Channel::setLastTopic(const std::string s)
+{
+	this->_lastTopic.lastTopicSetBy = s;
+	this->_lastTopic.lastTopicSetAt = std::time(NULL);
+}
+
+LastTopic	Channel::getLastTopic()
+{
+	return (this->_lastTopic);
+}
 
 std::vector<User>	Channel::getChanMembers() const
 {
