@@ -80,6 +80,17 @@ void	Server::socketSetup(int &listenfd, struct sockaddr_in &servAddr)
 		throw ("Server::socketSetup::Error listening for connections.");
 }
 
+int	noPass(User& user)
+{
+	// Commands commands;
+	
+	std::string error(":localhost * ERROR :No password provided\r\n");
+	send(user.socket, error.c_str(), error.size(), 0);
+	close(user.socket);
+	// commands.quit(user);
+	return (-1);
+}
+
 int Server::parseIncomingMessage(const std::string buff, const int i)
 {
 	User& 			user = _users[i];
@@ -89,17 +100,42 @@ int Server::parseIncomingMessage(const std::string buff, const int i)
 		return (-1);
 	std::string substr = buff.substr(0, 4);
 	
-	//and other commands to be added later
+	static bool passSent = false;
+	if (substr == "PASS")
+	{
+		passSent = true;
+		return (commands.pass(user, buff.substr(4, buff.size() - 4), this->sPassword));
+	}
  	if (substr == "NICK")
+	{
+		if (passSent == false)
+			return (noPass(user));
 		return (commands.nick(user, buff.substr(4, buff.size() - 4), this->_users));
+	}
 	if (substr == "USER")
+	{
+		if (passSent == false)
+			return (noPass(user));
 		return (commands.user(user, buff.substr(4, buff.size() - 4)));
+	}
 	if (substr == "JOIN")
+	{
+		if (passSent == false)
+			return (noPass(user));
 		return (commands.join(user, buff.substr(4, buff.size() - 4), this->_channels));
+	}
 	if (buff.substr(0, 5) == "TOPIC")
+	{
+		if (passSent == false)
+			return (noPass(user));
 		return (commands.topic(user, buff.substr(5, buff.size() - 5), this->_channels));
+	}
 	if (buff.substr(0, 7) == "PRIVMSG")
+	{
+		if (passSent == false)
+			return (noPass(user));
 		return (commands.privmsg(user, buff.substr(7, buff.size() - 7), this->_channels, this->_users));
+	}
 	return (-1);
 }
 

@@ -109,6 +109,11 @@ int	Commands::topic(const User& user, const std::string& buff, std::vector<Chann
 			// std::cout << "newtopic: " << '\'' << newTopic << '\'' << std::endl;
 			chan->setChanTopic(newTopic);
 			chan->setLastTopic(user.nickname);
+			for (std::vector<User>::const_iterator it = chan->getChanMembers().begin(); it != chan->getChanMembers().end(); it++)
+			{
+				std::string TOPIC(':' + user.nickname + " TOPIC " + chan->getChanName() + ' ' + newTopic + "\r\n");
+				send(it->socket, TOPIC.c_str(), TOPIC.size(), 0);
+			}
 		}
 	}
 	return (0);

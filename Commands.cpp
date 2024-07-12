@@ -41,6 +41,24 @@ int	Commands::sendNumericReply(const User &user, const std::string& err) const
 	return (0);
 }
 
+int		Commands::pass(User& user, const std::string& buffer, const std::string& password) const
+{
+	std::string buff(buffer.substr(1, buffer.size() - 3));
+
+	std::cout << "buff:" << buff << std::endl;
+	if (buff != password)
+	{
+		std::string PASSMISMATCH(S_ERR_PASSWDMISMATCH);
+		PASSMISMATCH += " * :Password incorrect";
+		sendNumericReply(user, PASSMISMATCH);
+	}
+	else
+	{
+		std::cout << "password is fine :)" << std::endl;
+	}
+	return (0);
+}
+
 int	Commands::nick(User& user, const std::string buff, std::vector<User> userList)
 {
 	if (buff.size() == 0)
@@ -71,16 +89,18 @@ int	Commands::nick(User& user, const std::string buff, std::vector<User> userLis
 		return (sendNumericReply(user, ERRONEUSNICKNAME));
 	}
 	size_t endPos = buff.find("\r\n", 0);
+	std::string oldNickName;
 	for (std::vector<User>::iterator it = userList.begin(); it != userList.end(); it++)
 	{
-		const std::string tempBuff = buff.substr(1, endPos - 1);
+		std::string tempBuff = buff.substr(1, endPos - 1);
 		if (it->nickname.empty() == true)
 			break ;
-		std::string tempNickName = it->nickname;
+		oldNickName = it->nickname;
+		std::string tempNickName = oldNickName;
 		for (size_t i = 0; i < tempBuff.size(); i++)
-			toupper(tempBuff[i]);
-		for (size_t i = 0; i < tempNickName.size(); i++)
-			toupper(tempNickName[i]);
+			tempBuff[i] = toupper(tempBuff[i]);
+		for (size_t i = 0; i < oldNickName.size(); i++)
+			tempNickName[i] = toupper(oldNickName[i]);
 		if (tempBuff == tempNickName)// && tempNickName != user.nickname
 		{
 			const std::string NICKNAMEINUSE = S_ERR_NICKNAMEINUSE + user.username + " " + buff
@@ -89,6 +109,8 @@ int	Commands::nick(User& user, const std::string buff, std::vector<User> userLis
 		}
 	}
 	user.nickname = buff.substr(1, buff.size() - 3);
+	std::string nickreply(':' + oldNickName + " NICK " + user.nickname + "\r\n");
+	send(user.socket, nickreply.c_str(), nickreply.size(), 0);
 	if (this->userCommand.empty() == false)
 		Commands::user(user, this->userCommand);
 	return (0);
@@ -245,10 +267,7 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 						std::vector<User> members = it->getChanMembers();
 						std::string joinRelayMessage(':' + user.nickname + '!' + user.username + '@' + "localhost " + "JOIN " + buff + "\r\n");
 						for (std::vector<User>::const_iterator subIter = members.begin(); subIter != members.end(); subIter++)
-						{
-							//sending "full client identifier" (nickname!username@hostname)
 							send(subIter->socket, joinRelayMessage.c_str(), joinRelayMessage.size(), 0);
-						}
 					}
 				}
 				//join the channel
@@ -266,15 +285,15 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 		channelList.push_back(newChan);
 	}
 	std::string joinReply(":" + user.nickname + "!" + user.username + "@" + "localhost" + " JOIN " + buff + "\r\n");
-	// if (chan.getTopic().empty() == false)
-	// {
-	// 	// std::string RPLTOPIC(S_RPL_TOPIC + ' ' + user.nickname + ' ' + buff + ' ');
-	// 	// RPLTOPIC += chan.getTopic();
-	// 	// RPLTOPIC += "\r\n";
-	// 	// sendNumericReply(user, RPLTOPIC);
-	// }
 	send(user.socket, joinReply.c_str(), joinReply.size(), 0);
-
+	//WAS WORKING HERE////////////////
+	// if (chan.getTopic().empty() == false)/////////////////
+	// {/////////////////
+	// 	std::string RPLTOPIC(S_RPL_TOPIC + ' ' + user.nickname + ' ' + buff + ' ')/////////////////;
+	// 	RPLTOPIC += chan.getTopic();/////////////////
+	// 	RPLTOPIC += "\r\n";/////////////////
+	// 	sendNumericReply(user, RPLTOPIC);/////////////////
+	// }
 	return (0);
 }
 

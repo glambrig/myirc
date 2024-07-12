@@ -14,6 +14,10 @@
 #define RPL_CREATED 003
 #define S_RPL_CREATED "003"
 
+//PASS
+#define ERR_PASSWDMISMATCH 464
+#define S_ERR_PASSWDMISMATCH "464"
+
 //NICK codes
 #define ERR_NONICKNAMEGIVEN 431
 #define ERR_ERRONEUSNICKNAME 432
@@ -30,26 +34,26 @@
 
 //JOIN codes
 #define ERR_BADCHANMASK 476
-#define S_ERR_BADCHANMASK "476"
 #define RPL_TOPIC 332
+#define S_ERR_BADCHANMASK "476"
 #define S_RPL_TOPIC "332"
 
 //PRIVMSG codes
 #define ERR_NORECIPIENT 411
-#define S_ERR_NORECIPIENT "411"
 #define ERR_NOSUCHNICK 401
+#define S_ERR_NORECIPIENT "411"
 #define S_ERR_NOSUCHNICK "401"
 
 //TOPIC codes
 #define RPL_NOTOPIC 331
-#define S_RPL_NOTOPIC "331"
 #define RPL_TOPIC 332
-#define S_RPL_TOPIC "332"
 #define ERR_CHANOPRIVSNEEDED 482
-#define S_ERR_CHANOPRIVSNEEDED "482"
 #define ERR_NOTONCHANNEL 442
-#define S_ERR_NOTONCHANNEL "442"
 #define RPL_TOPICWHOTIME 333
+#define S_RPL_NOTOPIC "331"
+#define S_RPL_TOPIC "332"
+#define S_ERR_CHANOPRIVSNEEDED "482"
+#define S_ERR_NOTONCHANNEL "442"
 #define S_RPL_TOPICWHOTIME "333"
 
 typedef struct Commands
@@ -67,6 +71,7 @@ typedef struct Commands
 	bool	isValidCommand(const std::string &s) const;
 	int		sendNumericReply(const User &user, const std::string& err) const;
 
+	int		pass(User& user, const std::string& buff, const std::string& password) const;
 	int		nick(User& user, const std::string buff, std::vector<User> userList);
 	int		parseUserBuff(const std::string &buff) const;
 	int		user(User& user, std::string buff);
