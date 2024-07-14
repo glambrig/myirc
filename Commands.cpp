@@ -102,15 +102,21 @@ int	Commands::nick(User& user, const std::string buff, std::vector<User> userLis
 			tempNickName[i] = toupper(oldNickName[i]);
 		if (tempBuff == tempNickName)// && tempNickName != user.nickname
 		{
-			const std::string NICKNAMEINUSE = S_ERR_NICKNAMEINUSE + user.username + " " + buff
-				+ " :Nickname is already in use";
+			std::string NICKNAMEINUSE(S_ERR_NICKNAMEINUSE);
+			NICKNAMEINUSE += ' ';
+			if (user.username.empty())
+				NICKNAMEINUSE += '*';
+			else
+				NICKNAMEINUSE += user.username;
+			NICKNAMEINUSE += ' ';
+			NICKNAMEINUSE += oldNickName;
+			NICKNAMEINUSE += " :Nickname is already in use";
 			return (sendNumericReply(user, NICKNAMEINUSE));
 		}
 	}
 	user.nickname = buff.substr(1, buff.size() - 3);
 	std::string nickreply(':' + oldNickName + " NICK " + user.nickname + "\r\n");
-	for (std::vector<User>::iterator it = userList.begin(); it != userList.end(); it++)
-		send(it->socket, nickreply.c_str(), nickreply.size(), 0);
+	send(user.socket, nickreply.c_str(), nickreply.size(), 0);
 	if (this->userCommand.empty() == false)
 		Commands::user(user, this->userCommand);
 	return (0);
@@ -286,13 +292,13 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 	}
 	std::string joinReply(":" + user.nickname + "!" + user.username + "@" + "localhost" + " JOIN " + buff + "\r\n");
 	send(user.socket, joinReply.c_str(), joinReply.size(), 0);
-	// if (chan.getTopic().empty() == false)/////////////////
-	// {/////////////////
-	// 	std::string RPLTOPIC(S_RPL_TOPIC + ' ' + user.nickname + ' ' + buff + ' ')/////////////////;
-	// 	RPLTOPIC += chan.getTopic();/////////////////
-	// 	RPLTOPIC += "\r\n";/////////////////
-	// 	sendNumericReply(user, RPLTOPIC);/////////////////
-	// }
+	if (chan.getChanTopic().empty() == false)
+	{
+		std::string RPLTOPIC(S_RPL_TOPIC + ' ' + user.nickname + ' ' + chan.getChanName() + " :");
+		RPLTOPIC += chan.getChanTopic();
+		RPLTOPIC += "\r\n";
+		sendNumericReply(user, RPLTOPIC);
+	}
 	return (0);
 }
 
