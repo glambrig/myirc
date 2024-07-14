@@ -45,7 +45,6 @@ int		Commands::pass(User& user, const std::string& buffer, const std::string& pa
 {
 	std::string buff(buffer.substr(1, buffer.size() - 3));
 
-	std::cout << "buff:" << buff << std::endl;
 	if (buff != password)
 	{
 		std::string PASSMISMATCH(S_ERR_PASSWDMISMATCH);
@@ -110,7 +109,8 @@ int	Commands::nick(User& user, const std::string buff, std::vector<User> userLis
 	}
 	user.nickname = buff.substr(1, buff.size() - 3);
 	std::string nickreply(':' + oldNickName + " NICK " + user.nickname + "\r\n");
-	send(user.socket, nickreply.c_str(), nickreply.size(), 0);
+	for (std::vector<User>::iterator it = userList.begin(); it != userList.end(); it++)
+		send(it->socket, nickreply.c_str(), nickreply.size(), 0);
 	if (this->userCommand.empty() == false)
 		Commands::user(user, this->userCommand);
 	return (0);
@@ -286,7 +286,6 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 	}
 	std::string joinReply(":" + user.nickname + "!" + user.username + "@" + "localhost" + " JOIN " + buff + "\r\n");
 	send(user.socket, joinReply.c_str(), joinReply.size(), 0);
-	//WAS WORKING HERE////////////////
 	// if (chan.getTopic().empty() == false)/////////////////
 	// {/////////////////
 	// 	std::string RPLTOPIC(S_RPL_TOPIC + ' ' + user.nickname + ' ' + buff + ' ')/////////////////;
