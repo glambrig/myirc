@@ -35,8 +35,12 @@
 //JOIN codes
 #define ERR_BADCHANMASK 476
 #define RPL_TOPIC 332
+#define RPL_NAMREPLY 353
+#define RPL_ENDOFNAMES 366
 #define S_ERR_BADCHANMASK "476"
 #define S_RPL_TOPIC "332"
+#define S_RPL_NAMREPLY "353"
+#define S_RPL_ENDOFNAMES "366"
 
 //PRIVMSG codes
 #define ERR_NORECIPIENT 411
@@ -55,6 +59,7 @@
 #define S_ERR_CHANOPRIVSNEEDED "482"
 #define S_ERR_NOTONCHANNEL "442"
 #define S_RPL_TOPICWHOTIME "333"
+
 
 typedef struct Commands
 {
@@ -75,6 +80,7 @@ typedef struct Commands
 	int		nick(User& user, const std::string buff, std::vector<User> userList);
 	int		parseUserBuff(const std::string &buff) const;
 	int		user(User& user, std::string buff);
+	// int		who(const std::string buff, const std::vector<User> userList, const std::vector<Channel> channelList) const;
 	int		join(User& user, const std::string buff, std::vector<Channel> &channelList) const;
 	int		privmsg(User& user, const std::string &buffer, const std::vector<Channel> channelList, const std::vector<User> userList) const;
 	int		privmsgUser(User& user, const std::string &buffer, const std::string& target, const std::vector<User> &userList) const;

@@ -14,6 +14,7 @@ Channel::Channel(const Channel& copy)
 	{
 		this->_name = copy.getChanName();
 		this->_chanMembers = copy.getChanMembers();
+		this->_topic = copy.getChanTopic();
 		this->flags = copy.flags;
 	}
 }
@@ -22,6 +23,7 @@ Channel& Channel::operator=(const Channel& rhs)
 {
 	this->_name = rhs.getChanName();
 	this->_chanMembers = rhs.getChanMembers();
+	this->_topic = rhs.getChanTopic();
 	this->flags = rhs.flags;
 	return (*this);
 }
@@ -43,10 +45,7 @@ void	Channel::setChanName(const std::string name)
 
 void	Channel::setChanTopic(const std::string s)
 {
-	if (s.empty())
-		this->_topic.clear();
-	else
-		this->_topic = s;
+	this->_topic = s;
 }
 
 std::string	Channel::getChanTopic() const

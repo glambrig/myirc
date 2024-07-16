@@ -215,6 +215,35 @@ int	Commands::user(User& user, std::string buff)
 	return (0);
 }
 
+// int	Commands::who(const std::string buff, const std::vector<User> userList, const std::vector<Channel> channelList) const
+// {
+// 	bool isUser = false;
+// 	bool isChannel = false;
+
+// 	if (buff.empty() || buff.size() < 3)
+// 		return (-1);
+// 	if (buff[1] == '#')
+// 		isChannel = true;
+// 	std::string sub(buff.substr(1, buff.size() - 1));
+// 	if (isChannel == true)
+// 	{
+// 		for (std::vector<Channel>::const_iterator it = channelList.begin(); it != channelList.end(); it++)
+// 		{
+// 			if (it->getChanName() == sub)
+// 			{
+// 				for (std::vector<User>::const_iterator subiter = userList.begin(); subiter != userList.end(); subiter++)
+// 				{
+
+// 				}
+// 			}
+// 		}
+// 	}
+// 	for (std::vector<User>::const_iterator it = userList.begin(); it != userList.end(); it++)
+// 	{
+// 		if (it->nickname == sub)
+// 	}
+// }
+
 /*
 	Checks for leading # in front of channel name, and makes sure there are no spaces
 	Remember that we have to subtract 2 from substr each time when there's a \r\n sequence
@@ -284,21 +313,45 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 	}
 	else
 	{
-		Channel newChan;
-		newChan.setChanName(buff);//.substr(1, buff.size() - 1)
-		newChan.addMember(user);
-		newChan.flags.operatorList.push_back(user);
-		channelList.push_back(newChan);
+		chan.setChanName(buff);
+		chan.addMember(user);
+		chan.flags.operatorList.push_back(user);
+		channelList.push_back(chan);
 	}
 	std::string joinReply(":" + user.nickname + "!" + user.username + "@" + "localhost" + " JOIN " + buff + "\r\n");
 	send(user.socket, joinReply.c_str(), joinReply.size(), 0);
 	if (chan.getChanTopic().empty() == false)
 	{
-		std::string RPLTOPIC(S_RPL_TOPIC + ' ' + user.nickname + ' ' + chan.getChanName() + " :");
-		RPLTOPIC += chan.getChanTopic();
-		RPLTOPIC += "\r\n";
+		std::string RPLTOPIC(S_RPL_TOPIC);
+		 
+		RPLTOPIC += ' ' + user.nickname + ' ' + chan.getChanName() + " :" + chan.getChanTopic();
 		sendNumericReply(user, RPLTOPIC);
 	}
+	/*<client> <symbol> <channel> :[prefix]<nick>{ [prefix]<nick>}*/
+	std::string NAMREPLY(S_RPL_NAMREPLY);
+
+	NAMREPLY += ' ' + user.nickname + " = ";
+	NAMREPLY += chan.getChanName();
+	NAMREPLY += " :";
+	for (std::vector<User>::const_iterator it = chan.getChanMembers().begin(); it != chan.getChanMembers().end(); it++)
+	{
+		std::string name(NAMREPLY);
+		for (std::vector<User>::const_iterator subiter = chan.flags.operatorList.begin(); subiter != chan.flags.operatorList.end(); subiter++)
+		{
+			if (it->nickname == subiter->nickname)
+				name += '@';
+		}
+		name += it->nickname;
+		if (it + 1 != chan.getChanMembers().end())
+			name += ' ';
+		sendNumericReply(user, name);
+	}
+	std::string ENDOFNAMES(S_RPL_ENDOFNAMES);
+
+	ENDOFNAMES += ' ' + user.nickname + ' ' + chan.getChanName() + " :End of /NAMES list";
+	// ENDOFNAMES += chan.getChanName();
+	// ENDOFNAMES += " :End of /NAMES list";
+	sendNumericReply(user, ENDOFNAMES);
 	return (0);
 }
 
