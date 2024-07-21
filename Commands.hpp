@@ -60,6 +60,11 @@
 #define S_ERR_NOTONCHANNEL "442"
 #define S_RPL_TOPICWHOTIME "333"
 
+//MODE codes
+#define ERR_UMODEUNKNOWNFLAG 501
+#define S_ERR_UMODEUNKNOWNFLAG "501"
+#define RPL_CHANNELMODEIS 324
+#define S_RPL_CHANNELMODEIS "324"
 
 typedef struct Commands
 {
@@ -88,4 +93,5 @@ typedef struct Commands
 
 	/*Operator Commands*/
 	int		topic(const User& user, const std::string& buff, std::vector<Channel> &channelList) const;
+	int		mode(const User& user, const std::string buff, std::vector<Channel> &channelList) const;
 }	Commands;

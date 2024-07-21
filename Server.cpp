@@ -91,6 +91,7 @@ int	noPass(User& user)
 	return (-1);
 }
 
+/*This function NEEDS to be revised. Parsing is pretty bad. Ex. passing "MODES" will go into MODE command*/
 int Server::parseIncomingMessage(const std::string buff, const int i)
 {
 	User& 			user = _users[i];
@@ -123,6 +124,12 @@ int Server::parseIncomingMessage(const std::string buff, const int i)
 		if (passSent == false)
 			return (noPass(user));
 		return (commands.join(user, buff.substr(4, buff.size() - 4), this->_channels));
+	}
+	if (substr == "MODE")
+	{
+		if (passSent == false)
+			return (noPass(user));	
+		return (commands.mode(user, buff.substr(4, buff.size() - 4), this->_channels));
 	}
 	if (buff.substr(0, 5) == "TOPIC")
 	{
@@ -165,39 +172,6 @@ std::vector<std::string>	splitRecvRes(std::string buff)
 	return (res);
 }
 
-// std::vector<std::string>	splitRecvRes(const std::string &buff)
-// {
-// 	std::vector<std::string> res;
-// 	int count = 0;
-// 	int pos[100];
-
-// 	for (size_t i = 0, k = 0; i < buff.length() - 1;)
-// 	{
-// 		if (buff[i] == '\r' && buff[i + 1] == '\n')
-// 		{
-// 			count++;
-// 			pos[k++] = i + 2;
-// 			i += 2;
-// 			continue ;
-// 		}
-// 		i++;
-// 	}
-// 	for (int i = 0; i < count; i++)
-// 	{
-// 		if (i == 0)
-// 		{
-// 			std::string temp = buff.substr(0, pos[0]);
-// 			res.push_back(temp);
-// 		}
-// 		else
-// 		{
-// 			std::string temp = buff.substr(pos[i - 1], pos[i]);
-// 			res.push_back(temp);
-// 		}
-// 	}
-// 	return (res);
-// }
-
 void	Server::handlePollIn(struct pollfd	**pfdsArr, size_t pfdsArrLen, size_t i, int listenfd)
 {
 	char	buff[512];
@@ -238,10 +212,7 @@ void	Server::handlePollIn(struct pollfd	**pfdsArr, size_t pfdsArrLen, size_t i, 
 			close((*pfdsArr)[i].fd);
 			// reallocArr(pfdsArr, i);	//need to write this. frees the space taken up by the disconnected client, and realloc's the array
 			if (recvRes == 0)
-			{
-				// _users[i].setisConnected(false);
 				std::cout << "Client disconnected" << std::endl;
-			}
 			else if (recvRes < 0)
 				throw ("Error receiving from fd");
 		}

@@ -9,11 +9,11 @@
 
 typedef struct ModeFlags
 {
-	bool							inviteOnly;
-	bool							topicOpOnly;
-	std::pair<bool, int>			userLimit;
-	std::pair<bool, std::string>	pswdIsSet;
-	std::vector<User>				operatorList;
+	bool							inviteOnly;		//+-i
+	bool							topicOpOnly;	//+-t
+	std::pair<bool, int>			userLimit;		//+-l
+	std::pair<bool, std::string>	pswdIsSet;		//+-k
+	std::vector<User>				operatorList;	//+-o
 }	ModeFlags;
 
 typedef struct LastTopic
