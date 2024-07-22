@@ -253,20 +253,22 @@ int	joinParse(const std::string &buffer)
 	if (buffer.empty() == true || buffer[0] != ' ' || buffer[1] != '#')
 		return (-1);
 	std::string buff = buffer.substr(2, buffer.size() - 4);
+	int spaceCount = 0;
 	for (size_t i = 0; i < buff.size(); i++)
 	{
 		if (!isalnum(buff[i]))
-			return (-1);
+		{
+			if (buff[i] == ' ')
+				spaceCount++;
+			if (spaceCount > 1)
+				return (-1);
+		}
 	}
 	return (0);	
 }
 
 int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &channelList) const
 {
-	//Check if client CAN join the given channel
-		//does channel exist
-			//if so, does user have permission to join (invite only?)
-		//otherwise create it, and add user to it
 	if (joinParse(buffer) < 0)
 	{
 		std::string BADCHANMASK = S_ERR_BADCHANMASK;
@@ -275,81 +277,95 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 		BADCHANMASK += " :Bad Channel Mask";
 		return (sendNumericReply(user, BADCHANMASK));
 	}
-	std::string buff = buffer.substr(1, buffer.size() - 3);	//removing the space and \r\n to leave only '#channelname'
+	std::string buff = buffer.substr(1, buffer.size() - 3);	//removing the space and \r\n to leave only '#channelname [params]'
 	
 	bool	channelExists = false;
-	Channel chan;
+	Channel *chan;
+	Channel newChan;
 	for (std::vector<Channel>::iterator it = channelList.begin(); it != channelList.end(); it++)
 	{
-		if (buff == it->getChanName())
+		if (buff == it->getChanName() || buff.substr(0, buff.find(' ', 0)) == it->getChanName())
 		{
 			channelExists = true;
-			chan = *it;
+			Channel &temp = *it;
+			chan = &temp;
 			break ;
 		}
 	}
 	if (channelExists == true)
 	{
-		for (std::vector<Channel>::iterator it = channelList.begin(); it != channelList.end(); it++)
+		if (chan->flags.userLimit.first == true && chan->getChanMembers().size() == chan->flags.userLimit.second)
 		{
-			if (buff == it->getChanName())
+			std::string CHANNELFULL(S_ERR_CHANNELISFULL);
+			CHANNELFULL += " " + user.nickname + " " + chan->getChanName() + " :Cannot join channel (+l)";
+			return (sendNumericReply(user, CHANNELFULL));
+		}
+		size_t posTry = buff.find(' ');
+		std::string passTry;
+		if (posTry != std::string::npos)
+			passTry = buff.substr(posTry + 1);
+		else
+			passTry = buff;
+		if (chan->flags.pswdIsSet.first == true && passTry != chan->flags.pswdIsSet.second)
+		{
+			std::string BADKEY(S_ERR_BADCHANNELKEY);
+			BADKEY += " " + user.nickname + " " + chan->getChanName() + " :Cannot join channel (+k)";
+			return (sendNumericReply(user, BADKEY));
+		}
+		if (chan->flags.inviteOnly == false)
+		{
+			//if there are other users, send JOIN to them
+			if (chan->getChanMembers().size() > 0)
 			{
-				if (it->flags.inviteOnly == false)
-				{
-					//if there are other users, send JOIN to them
-					if (it->getChanMembers().size() > 0)
-					{
-						std::vector<User> members = it->getChanMembers();
-						std::string joinRelayMessage(':' + user.nickname + '!' + user.username + '@' + "localhost " + "JOIN " + buff + "\r\n");
-						for (std::vector<User>::const_iterator subIter = members.begin(); subIter != members.end(); subIter++)
-							send(subIter->socket, joinRelayMessage.c_str(), joinRelayMessage.size(), 0);
-					}
-				}
-				//join the channel
-				it->addMember(user);
-				break ;
+				std::vector<User> members = chan->getChanMembers();
+				std::string joinRelayMessage(':' + user.nickname + '!' + user.username + '@' + "localhost " + "JOIN " + chan->getChanName() + "\r\n");
+				for (std::vector<User>::const_iterator subIter = members.begin(); subIter != members.end(); subIter++)
+					send(subIter->socket, joinRelayMessage.c_str(), joinRelayMessage.size(), 0);
 			}
 		}
+		//join the channel
+		chan->addMember(user);
 	}
 	else
 	{
-		chan.setChanName(buff);
-		chan.addMember(user);
-		chan.flags.operatorList.push_back(user);
-		channelList.push_back(chan);
+		chan = &newChan;
+		chan->setChanName(buff);
+		chan->addMember(user);
+		chan->flags.operatorList.push_back(user);
+		channelList.push_back(*chan);
 	}
 	std::string joinReply(":" + user.nickname + "!" + user.username + "@" + "localhost" + " JOIN " + buff + "\r\n");
 	send(user.socket, joinReply.c_str(), joinReply.size(), 0);
-	if (chan.getChanTopic().empty() == false)
+	if (chan->getChanTopic().empty() == false)
 	{
 		std::string RPLTOPIC(S_RPL_TOPIC);
 		 
-		RPLTOPIC += ' ' + user.nickname + ' ' + chan.getChanName() + " :" + chan.getChanTopic();
+		RPLTOPIC += ' ' + user.nickname + ' ' + chan->getChanName() + " :" + chan->getChanTopic();
 		sendNumericReply(user, RPLTOPIC);
 	}
 	/*<client> <symbol> <channel> :[prefix]<nick>{ [prefix]<nick>}*/
 	std::string NAMREPLY(S_RPL_NAMREPLY);
 
 	NAMREPLY += ' ' + user.nickname + " = ";
-	NAMREPLY += chan.getChanName();
+	NAMREPLY += chan->getChanName();
 	NAMREPLY += " :";
-	for (std::vector<User>::const_iterator it = chan.getChanMembers().begin(); it != chan.getChanMembers().end(); it++)
+	for (std::vector<User>::const_iterator it = chan->getChanMembers().begin(); it != chan->getChanMembers().end(); it++)
 	{
 		std::string name(NAMREPLY);
-		for (std::vector<User>::const_iterator subiter = chan.flags.operatorList.begin(); subiter != chan.flags.operatorList.end(); subiter++)
+		for (std::vector<User>::const_iterator subiter = chan->flags.operatorList.begin(); subiter != chan->flags.operatorList.end(); subiter++)
 		{
 			if (it->nickname == subiter->nickname)
 				name += '@';
 		}
 		name += it->nickname;
-		if (it + 1 != chan.getChanMembers().end())
+		if (it + 1 != chan->getChanMembers().end())
 			name += ' ';
 		sendNumericReply(user, name);
 	}
 	std::string ENDOFNAMES(S_RPL_ENDOFNAMES);
 
-	ENDOFNAMES += ' ' + user.nickname + ' ' + chan.getChanName() + " :End of /NAMES list";
-	// ENDOFNAMES += chan.getChanName();
+	ENDOFNAMES += ' ' + user.nickname + ' ' + chan->getChanName() + " :End of /NAMES list";
+	// ENDOFNAMES += chan->getChanName();
 	// ENDOFNAMES += " :End of /NAMES list";
 	sendNumericReply(user, ENDOFNAMES);
 	return (0);
@@ -379,7 +395,7 @@ int	Commands::privmsgUser(User& user, const std::string &buffer, const std::stri
 	return (0);
 }
 
-int	Commands::privmsgChannel(User& user, const std::string &buffer, const std::string &target, const std::vector<Channel> channelList) const
+int	Commands::privmsgChannel(User& user, const std::string &buffer, const std::string &target, const std::vector<Channel> &channelList) const
 {
 	for (std::vector<Channel>::const_iterator it = channelList.begin(); it != channelList.end(); it++)
 	{
@@ -401,7 +417,7 @@ int	Commands::privmsgChannel(User& user, const std::string &buffer, const std::s
 
 
 /*:<source> PRIVMSG <target> :<message>*/
-int		Commands::privmsg(User& user, const std::string &buffer, const std::vector<Channel> channelList, const std::vector<User> userList) const
+int		Commands::privmsg(User& user, const std::string &buffer, const std::vector<Channel> &channelList, const std::vector<User> &userList) const
 {
 	//check if target is a user, or if it's a channel
 		//if neither, error NOSUCHNICK i think

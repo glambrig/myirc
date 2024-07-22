@@ -4,6 +4,7 @@
 #include <string>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <stdlib.h>
 
 typedef struct	User
 {

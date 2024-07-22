@@ -98,7 +98,8 @@ int	Commands::topic(const User& user, const std::string& buff, std::vector<Chann
 		}
 		if (chan->flags.topicOpOnly == true && userIsOp == false)
 		{
-			std::string CHANOPRIVSNEEDED(S_ERR_CHANOPRIVSNEEDED + ' ' + user.nickname + ' ' + chan->getChanName() + " :You're not a channel operator");
+			std::string CHANOPRIVSNEEDED(S_ERR_CHANOPRIVSNEEDED);
+			CHANOPRIVSNEEDED += ' ' + user.nickname + ' ' + chan->getChanName() + " :You're not a channel operator";
 			return (sendNumericReply(user, CHANOPRIVSNEEDED));
 		}
 		else
@@ -176,8 +177,6 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 	}
 	std::string modes(buff.substr(buff.find(' ', 1) + 1));	//everything after "MODE #channel "
 	
-	std::cout << "modes:" << modes << std::endl;/////////////////////////
-
 	if (modes.empty() || modes == buff)	//' ' wasn't found in buff
 		return (sendNumericReply(user, emptyModeCommand(user, chan)));
 	//check if user is op
@@ -207,18 +206,26 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 			if (modes[i] + 1 == '+' || modes[i] + 1 == '-')	//check for consecutive +/-
 				return (-1);
 			if (modes[i] == '+')
-			{
 				plus = true;
-				// minus = false;
-			}
 			else if (modes[i] == '-')
-			{
 				plus = false;
-				// minus = true;
+			for (std::string::iterator it = modes.begin();;)
+			{
+				size_t k = 0;
+				if (i == 0)
+				{
+					modes.erase(it);
+					break ;
+				}
+				while (k++ < i - 1)
+					it++;
+				modes.erase(it);
+				break ;
 			}
-			i++;
-			continue ;
 		}
+		
+		static std::string params(modes);
+		params = params.substr(params.find(' ') + 1);
 		switch (modes[i])
 		{
 			case 'i':
@@ -239,27 +246,42 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 			}
 			case 'l':
 			{
-				// if (plus)
-					// handleModeUsrLimit();
-				// else
+				if (plus)
+				{
+					std::string temp(params.substr(0, params.find(" \0")));
+					if (temp.find_first_not_of("0123456789") == std::string::npos)
+					{
+						chan->flags.userLimit.first = true;
+						chan->flags.userLimit.second = atoi(temp.c_str());
+					}
+				}
+				else
 					chan->flags.userLimit.first = false;
 				break ;
 			}
 			case 'k':
 			{
-				// if (plus)
-					// handleModeKey();
-				// else
+				if (plus)
+				{
+					chan->flags.pswdIsSet.first = true;
+					size_t pos = params.find(' ');
+					if (pos != std::string::npos)
+						chan->flags.pswdIsSet.second = params.substr(0, pos - 1);
+					else
+						chan->flags.pswdIsSet.second = params;
+				}
+				else
 					chan->flags.pswdIsSet.first = false;
 				break ;
 			}
 			case 'o':
 			{
-				// handleModeOp();
+				// handleModeOp(user, chan, plus);
 				break ;
 			}
 			default:
-				break ;
+				i++;
+				continue ;
 		}
 		//erase the resolved flag from the string
 		for (std::string::iterator it = modes.begin(); it != modes.end(); it++)
@@ -267,6 +289,18 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 			if (*it == modes[i] && modes[i] != '+' && modes[i] != '-')
 			{
 				modes.erase(it);
+				break ;
+			}
+		}
+		for (std::string::iterator it = modes.begin(); it != modes.end() && plus; it++)
+		{
+			if (modes.find(' ') != std::string::npos)
+			{
+				while (*it && *it != ' ')
+					it++;
+				modes.erase(it);
+				while (*it && *it != ' ')
+					modes.erase(it);
 				break ;
 			}
 		}
