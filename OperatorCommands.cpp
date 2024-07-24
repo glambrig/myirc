@@ -48,7 +48,8 @@ int	Commands::topic(const User& user, const std::string& buff, std::vector<Chann
 	if (chan == NULL || chan->getChanName().empty())
 		return (-1);
 	bool userInChannel = false;
-	for (std::vector<User>::iterator it = chan->getChanMembers().begin(); it != chan->getChanMembers().end(); it++)
+	std::vector<User> members = chan->getChanMembers();
+	for (std::vector<User>::iterator it = members.begin(); it != members.end(); it++)
 	{
 		if (user.nickname == it->nickname)
 		{
@@ -88,7 +89,8 @@ int	Commands::topic(const User& user, const std::string& buff, std::vector<Chann
 	else
 	{
 		bool userIsOp = false;
-		for (std::vector<User>::const_iterator it = chan->flags.operatorList.begin(); it != chan->flags.operatorList.end(); it++)
+		std::vector<User> opList = chan->flags.operatorList;
+		for (std::vector<User>::const_iterator it = opList.begin(); it != opList.end(); it++)
 		{
 			if (it->nickname == user.nickname)
 			{
@@ -107,10 +109,11 @@ int	Commands::topic(const User& user, const std::string& buff, std::vector<Chann
 			//user can change topic
 			std::string newTopic(buff.substr(buff.find(":") + 1));
 			newTopic.erase(newTopic.size() - 2, 2);
-			// std::cout << "newtopic: " << '\'' << newTopic << '\'' << std::endl;
 			chan->setChanTopic(newTopic);
 			chan->setLastTopic(user.nickname);
-			for (std::vector<User>::const_iterator it = chan->getChanMembers().begin(); it != chan->getChanMembers().end(); it++)
+			members.clear();
+			members = chan->getChanMembers();
+			for (std::vector<User>::const_iterator it = members.begin(); it != members.end(); it++)
 			{
 				std::string TOPIC(':' + user.nickname + " TOPIC " + chan->getChanName() + ' ' + newTopic + "\r\n");
 				send(it->socket, TOPIC.c_str(), TOPIC.size(), 0);
@@ -180,11 +183,12 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 	if (modes.empty() || modes == buff)	//' ' wasn't found in buff
 		return (sendNumericReply(user, emptyModeCommand(user, chan)));
 	//check if user is op
-	for (std::vector<User>::iterator it = chan->flags.operatorList.begin(); it != chan->flags.operatorList.end(); it++)
+	std::vector<User> opList = chan->flags.operatorList;
+	for (std::vector<User>::const_iterator it = opList.begin(); it != opList.end(); it++)
 	{
 		if (user.nickname == it->nickname)
 			break ;
-		if (it + 1 == chan->flags.operatorList.end())
+		if (it + 1 == opList.end())
 			return (-1);
 	}
 
@@ -224,7 +228,7 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 			}
 		}
 		
-		static std::string params(modes);
+		std::string params(modes);
 		params = params.substr(params.find(' ') + 1);
 		switch (modes[i])
 		{
@@ -276,7 +280,44 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 			}
 			case 'o':
 			{
-				// handleModeOp(user, chan, plus);
+				size_t pos = params.find(' ');
+				std::string asdf;
+				if (pos != std::string::npos)
+					asdf = params.substr(0, pos);
+				else
+					asdf = params;
+				
+				std::cout << chan->flags.operatorList.size() << std::endl;
+
+				std::vector<User> members = chan->getChanMembers();
+				for (std::vector<User>::iterator it = members.begin(); it !=  members.end(); it++)
+				{
+					if (it->nickname == asdf)
+					{
+						if (plus)
+							chan->flags.operatorList.push_back(*it);
+						else
+						{
+							std::vector<User> opList = chan->flags.operatorList;
+							for (std::vector<User>::iterator subiter = opList.begin(); subiter != opList.end(); subiter++)
+							{
+								if (subiter->nickname == asdf)
+								{
+									opList.erase(subiter);
+									std::cout << "after:" << opList.size() << std::endl;
+									break ;
+								}
+							}
+						}
+						break ;
+					}
+					if (it + 1 == members.end())
+					{
+						std::string NOSUCHNICK(S_ERR_NOSUCHNICK);
+						NOSUCHNICK += " " + user.nickname + " " + it->nickname + " :No such nick";
+						return (sendNumericReply(user, NOSUCHNICK));
+					}
+				}
 				break ;
 			}
 			default:
@@ -306,7 +347,9 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 		}
 	}
 	std::string reply(":" + user.nickname + " MODE" + buffer);
-	send(user.socket, reply.c_str(), reply.size(), 0);
+	std::vector<User> members = chan->getChanMembers();
+	for (std::vector<User>::const_iterator it = members.begin(); it != members.end(); it++)
+		send(it->socket, reply.c_str(), reply.size(), 0);
 	return (0);
 }
 

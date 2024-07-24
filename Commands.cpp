@@ -349,7 +349,9 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 	NAMREPLY += ' ' + user.nickname + " = ";
 	NAMREPLY += chan->getChanName();
 	NAMREPLY += " :";
-	for (std::vector<User>::const_iterator it = chan->getChanMembers().begin(); it != chan->getChanMembers().end(); it++)
+
+	std::vector<User> members = chan->getChanMembers();
+	for (std::vector<User>::const_iterator it = members.begin(); it != members.end(); it++)
 	{
 		std::string name(NAMREPLY);
 		for (std::vector<User>::const_iterator subiter = chan->flags.operatorList.begin(); subiter != chan->flags.operatorList.end(); subiter++)
@@ -358,7 +360,7 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 				name += '@';
 		}
 		name += it->nickname;
-		if (it + 1 != chan->getChanMembers().end())
+		if (it + 1 != members.end())
 			name += ' ';
 		sendNumericReply(user, name);
 	}
