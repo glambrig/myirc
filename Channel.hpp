@@ -10,6 +10,7 @@
 typedef struct ModeFlags
 {
 	bool							inviteOnly;		//+-i
+	std::vector<User *>				invitedUsers;
 	bool							topicOpOnly;	//+-t
 	std::pair<bool, size_t>			userLimit;		//+-l
 	std::pair<bool, std::string>	pswdIsSet;		//+-k

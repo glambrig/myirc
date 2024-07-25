@@ -358,7 +358,127 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 
 // }
 
-// int	Commands::invite()
-// {
+int inviteParsing(const std::string buffer, std::string &targetUser)
+{
+	if (buffer[0] != ' ' || buffer.size() - 2 < 5 || buffer.find('#') == std::string::npos || buffer.find("\r\n") == std::string::npos)
+		return (-1);
 
-// }
+	std::string buff = buffer.substr(0, buffer.size() - 2);
+	
+	int spaceCount = 0;
+	for (size_t i = 1; i < buff.size(); i++)
+	{
+		if (buff[i] == ' ' && buff[i - 1] != ' ')
+			spaceCount++;
+	}
+	if (spaceCount < 2 || buff.find('#', 1) == std::string::npos)
+		return (-1);
+	targetUser = buff.substr(1, buff.find(' ', 1) - 1);
+	return (0);
+}
+
+/*Syntax: INVITE <nickname> <channel>*/
+int	Commands::invite(const User& user, const std::string buffer, std::vector<Channel> &channelList, std::vector<User> &userList) const
+{
+	std::string targetUser;
+	Channel *chan;
+
+	if (inviteParsing(buffer, targetUser) < 0)
+		return (-1);
+
+	std::string buff = buffer.substr(0, buffer.size() - 2);
+
+	//target channel should exist
+	for (std::vector<Channel>::iterator it = channelList.begin(); it != channelList.end(); it++)
+	{
+		size_t pos = buff.find('#', 1);
+		if (pos == std::string::npos)
+		{
+			std::string NOSUCHCHAN(S_ERR_NOSUCHCHANNEL);
+
+			NOSUCHCHAN += " " + user.nickname + " " + chan->getChanName() + " :No such channel";
+			return (sendNumericReply(user, NOSUCHCHAN));
+		}
+		std::string chanName(buff.substr(pos));
+		if (it->getChanName() == chanName)
+		{
+			Channel &temp = *it;
+			chan = &temp;
+			break ;
+		}
+		else if (it + 1 == channelList.end())
+		{
+			std::string NOSUCHCHANNEL(S_ERR_NOSUCHCHANNEL);
+
+			NOSUCHCHANNEL += " " + user.nickname + " " + chanName + " :No such channel";
+			return (sendNumericReply(user, NOSUCHCHANNEL));
+		}
+	}
+	//Only members of the channel are allowed to invite other users
+	std::vector<User> members = chan->getChanMembers();
+	for (std::vector<User>::iterator it = members.begin(); it != members.end(); it++)
+	{
+		if (user.nickname == it->nickname)
+			break ;
+		else if (it + 1 == members.end())
+		{
+			std::string NOTONCHAN(S_ERR_NOTONCHANNEL);
+
+			NOTONCHAN += " " + user.nickname + " " + chan->getChanName() + " :You're not on that channel";
+			return (sendNumericReply(user, NOTONCHAN));
+		}
+	}
+	if (chan->flags.inviteOnly == true)
+	{
+		std::vector<User> opList = chan->flags.operatorList;
+		for (std::vector<User>::iterator it = opList.begin(); it != opList.end(); it++)
+		{
+			if (user.nickname == it->nickname)
+				break ;
+			else if (it + 1 == opList.end())
+			{
+				std::string NEEDOPRIVS(S_ERR_CHANOPRIVSNEEDED);
+
+				NEEDOPRIVS += " " + user.nickname + " " + chan->getChanName() + " :You're not channel operator";
+				return (sendNumericReply(user, NEEDOPRIVS));
+			}
+		}
+	}
+	//If the user is already on the target channel, the server MUST reject the command with the ERR_USERONCHANNEL numeric.
+	for (std::vector<User>::const_iterator it = members.begin(); it != members.end(); it++)
+	{
+		if (it->nickname == targetUser)
+		{
+			//<client> <nick> <channel> :is already on channel
+			std::string USERONCHANNEL(S_ERR_USERONCHANNEL);
+
+			USERONCHANNEL += " " + targetUser + " " + chan->getChanName() + " :is already on channel";
+			return (sendNumericReply(user, USERONCHANNEL));
+		}
+	}
+	std::string INVITING(S_RPL_INVITING);
+	std::string inviteReply(":");
+	User *invitedUser;
+
+	INVITING += " " + user.nickname + " " + targetUser + " " + chan->getChanName();
+	inviteReply += user.nickname + " INVITE " + targetUser + " " + chan->getChanName() + "\r\n"; 
+	sendNumericReply(user, INVITING);
+	for (std::vector<User>::iterator it = userList.begin(); it != userList.end(); it++)
+	{
+		if (it->nickname == targetUser)
+		{
+			User &temp = *it;
+			invitedUser = &temp;
+			chan->flags.invitedUsers.push_back(invitedUser);
+			return (send(it->socket, inviteReply.c_str(), inviteReply.size(), 0));
+		}
+		else if (it + 1 == userList.end())
+		{
+			std::string NOSUCHNICK(S_ERR_NOSUCHNICK);
+
+			NOSUCHNICK += " " + user.nickname + " " + targetUser + " :No such nick";
+			return (sendNumericReply(user, NOSUCHNICK));
+		}
+	}
+	return (-1);
+}

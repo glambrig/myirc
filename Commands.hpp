@@ -45,6 +45,8 @@
 #define S_RPL_ENDOFNAMES "366"
 #define S_ERR_CHANNELISFULL "471"
 #define S_ERR_BADCHANNELKEY "475"
+#define ERR_INVITEONLYCHAN 473
+#define S_ERR_INVITEONLYCHAN "473"
 
 //PRIVMSG codes
 #define ERR_NORECIPIENT 411
@@ -70,6 +72,14 @@
 #define RPL_CHANNELMODEIS 324
 #define S_RPL_CHANNELMODEIS "324"
 
+//INVITE codes
+#define ERR_NOSUCHCHANNEL 403
+#define S_ERR_NOSUCHCHANNEL "403"
+#define ERR_USERONCHANNEL 443
+#define S_ERR_USERONCHANNEL "443"
+#define RPL_INVITING 341
+#define S_RPL_INVITING "341"
+
 typedef struct Commands
 {
 	//If the nickname is invalid, the server will still run the USER command that was sent along with the first NICK command.
@@ -86,7 +96,7 @@ typedef struct Commands
 	int		sendNumericReply(const User &user, const std::string& err) const;
 
 	int		pass(User& user, const std::string& buff, const std::string& password) const;
-	int		nick(User& user, const std::string buff, std::vector<User> userList);
+	int		nick(User& user, const std::string buff, std::vector<User> &userList);
 	int		parseUserBuff(const std::string &buff) const;
 	int		user(User& user, std::string buff);
 	// int		who(const std::string buff, const std::vector<User> userList, const std::vector<Channel> channelList) const;
@@ -98,4 +108,5 @@ typedef struct Commands
 	/*Operator Commands*/
 	int		topic(const User& user, const std::string& buff, std::vector<Channel> &channelList) const;
 	int		mode(const User& user, const std::string buff, std::vector<Channel> &channelList) const;
+	int		invite(const User& user, const std::string buffer, std::vector<Channel> &channelList, std::vector<User> &userList) const;
 }	Commands;

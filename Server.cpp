@@ -137,6 +137,12 @@ int Server::parseIncomingMessage(const std::string buff, const int i)
 			return (noPass(user));
 		return (commands.topic(user, buff.substr(5, buff.size() - 5), this->_channels));
 	}
+	if (buff.substr(0, 6) == "INVITE")
+	{
+		if (passSent == false)
+			return (noPass(user));
+		return (commands.invite(user, buff.substr(6, buff.size() - 6), this->_channels, this->_users));
+	}
 	if (buff.substr(0, 7) == "PRIVMSG")
 	{
 		if (passSent == false)

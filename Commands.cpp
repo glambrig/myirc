@@ -58,7 +58,7 @@ int		Commands::pass(User& user, const std::string& buffer, const std::string& pa
 	return (0);
 }
 
-int	Commands::nick(User& user, const std::string buff, std::vector<User> userList)
+int	Commands::nick(User& user, const std::string buff, std::vector<User> &userList)
 {
 	if (buff.size() == 0)
 	{
@@ -87,7 +87,7 @@ int	Commands::nick(User& user, const std::string buff, std::vector<User> userLis
 		std::cout << ERRONEUSNICKNAME << std::endl;
 		return (sendNumericReply(user, ERRONEUSNICKNAME));
 	}
-	size_t endPos = buff.find("\r\n", 0);
+	size_t endPos = buff.find("\r\n", 0);	//careful: not checking for std::string::npos!
 	std::string oldNickName;
 	for (std::vector<User>::iterator it = userList.begin(); it != userList.end(); it++)
 	{
@@ -114,6 +114,10 @@ int	Commands::nick(User& user, const std::string buff, std::vector<User> userLis
 			return (sendNumericReply(user, NICKNAMEINUSE));
 		}
 	}
+	if (user.nickname.empty())
+		oldNickName = '*';
+	else
+		oldNickName = user.nickname;
 	user.nickname = buff.substr(1, buff.size() - 3);
 	std::string nickreply(':' + oldNickName + " NICK " + user.nickname + "\r\n");
 	send(user.socket, nickreply.c_str(), nickreply.size(), 0);
@@ -321,6 +325,25 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 				std::string joinRelayMessage(':' + user.nickname + '!' + user.username + '@' + "localhost " + "JOIN " + chan->getChanName() + "\r\n");
 				for (std::vector<User>::const_iterator subIter = members.begin(); subIter != members.end(); subIter++)
 					send(subIter->socket, joinRelayMessage.c_str(), joinRelayMessage.size(), 0);
+			}
+		}
+		else
+		{
+			std::vector<User *> invitedUsers = chan->flags.invitedUsers;
+			bool invited = false;
+			for (std::vector<User *>::iterator it = invitedUsers.begin(); it != invitedUsers.end(); it++)
+			{
+				if ((*it)->nickname == user.nickname)
+				{
+					invited = true;
+					break ;
+				}
+			}
+			if (invited == false)
+			{
+				std::string INVITEONLY(S_ERR_INVITEONLYCHAN);
+				INVITEONLY += " " + user.nickname + " " + chan->getChanName() + " :Cannot join channel (+i)";
+				return (sendNumericReply(user, INVITEONLY));
 			}
 		}
 		//join the channel
