@@ -108,5 +108,6 @@ typedef struct Commands
 	/*Operator Commands*/
 	int		topic(const User& user, const std::string& buff, std::vector<Channel> &channelList) const;
 	int		mode(const User& user, const std::string buff, std::vector<Channel> &channelList) const;
+	int		kick(const User& user, std::vector<Channel>& channelList, const std::string buffer) const;
 	int		invite(const User& user, const std::string buffer, std::vector<Channel> &channelList, std::vector<User> &userList) const;
 }	Commands;

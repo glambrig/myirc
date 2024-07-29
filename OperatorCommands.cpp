@@ -353,14 +353,49 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 	return (0);
 }
 
-// int	Commands::kick()
-// {
+/*Syntax: KICK <channel> <user> [<comment>]*/
+int	Commands::kick(const User& user, std::vector<Channel>& channelList, const std::string buffer) const
+{
+	if (buffer.size() - 2 < 5 || buffer[0] != ' ' || buffer.find('#') == std::string::npos || buffer.find("\r\n") == std::string::npos)
+		return (-1);
+	
+	std::string buff = buffer.substr(0, buffer.size() - 2);
 
-// }
+	int spaceCount = 0;
+	for (size_t i = 1; i < buff.size(); i++)
+	{
+		if (buff[i] == ' ' && buff[i - 1] != ' ')
+			spaceCount++;
+	}
+	if (spaceCount < 2 || buff.find('#', 1) == std::string::npos)
+		return (-1);
+
+	if (channelList.empty())
+	{
+		std::string NOSUCHCHAN(S_ERR_NOSUCHCHANNEL);
+		size_t hashPos = buff.find('#');
+		NOSUCHCHAN += " " + user.nickname + " " + buff.substr(hashPos, buff.find(' ', buff.find('#'))) + " :No such channel";
+		return (sendNumericReply(user, NOSUCHCHAN));
+	}
+	Channel *chan;
+	for (std::vector<Channel>::iterator it = channelList.begin(); it != channelList.end(); it++)
+	{
+		size_t hashPos = buff.find('#');
+		std::string chanName(buff.substr(hashPos, buff.find(' ', buff.find('#'))));
+
+		if (it->getChanName() == chanName)
+		{
+			Channel& temp = *it;
+			chan = &temp;
+			break ;
+		}
+	}
+	
+}
 
 int inviteParsing(const std::string buffer, std::string &targetUser)
 {
-	if (buffer[0] != ' ' || buffer.size() - 2 < 5 || buffer.find('#') == std::string::npos || buffer.find("\r\n") == std::string::npos)
+	if (buffer.size() - 2 < 5 || buffer[0] != ' ' || buffer.find('#') == std::string::npos || buffer.find("\r\n") == std::string::npos)
 		return (-1);
 
 	std::string buff = buffer.substr(0, buffer.size() - 2);

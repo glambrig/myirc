@@ -336,6 +336,7 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 				if ((*it)->nickname == user.nickname)
 				{
 					invited = true;
+					invitedUsers.erase(it);
 					break ;
 				}
 			}
