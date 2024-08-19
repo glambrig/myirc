@@ -39,13 +39,13 @@
 #define RPL_ENDOFNAMES 366
 #define ERR_CHANNELISFULL 471
 #define ERR_BADCHANNELKEY 475 
+#define ERR_INVITEONLYCHAN 473
 #define S_ERR_BADCHANMASK "476"
 #define S_RPL_TOPIC "332"
 #define S_RPL_NAMREPLY "353"
 #define S_RPL_ENDOFNAMES "366"
 #define S_ERR_CHANNELISFULL "471"
 #define S_ERR_BADCHANNELKEY "475"
-#define ERR_INVITEONLYCHAN 473
 #define S_ERR_INVITEONLYCHAN "473"
 
 //PRIVMSG codes
@@ -93,7 +93,7 @@ typedef struct Commands
 	bool	hasRegistered;	//true if USER command has already been sent
 
 	bool	isValidCommand(const std::string &s) const;
-	int		sendNumericReply(const User &user, const std::string& err) const;
+	static int		sendNumericReply(const User &user, const std::string& err);
 
 	int		pass(User& user, const std::string& buff, const std::string& password) const;
 	int		nick(User& user, const std::string buff, std::vector<User> &userList);

@@ -29,7 +29,7 @@ bool	Commands::isValidCommand(const std::string &s) const
 }
 
 //For different error key/value pairs, see #define in .hpp
-int	Commands::sendNumericReply(const User &user, const std::string& err) const
+int	Commands::sendNumericReply(const User &user, const std::string& err)
 {
 	std::string reply = ":localhost " + err + "\r\n";
 
@@ -391,8 +391,6 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 	std::string ENDOFNAMES(S_RPL_ENDOFNAMES);
 
 	ENDOFNAMES += ' ' + user.nickname + ' ' + chan->getChanName() + " :End of /NAMES list";
-	// ENDOFNAMES += chan->getChanName();
-	// ENDOFNAMES += " :End of /NAMES list";
 	sendNumericReply(user, ENDOFNAMES);
 	return (0);
 }

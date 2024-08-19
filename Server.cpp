@@ -131,6 +131,12 @@ int Server::parseIncomingMessage(const std::string buff, const int i)
 			return (noPass(user));	
 		return (commands.mode(user, buff.substr(4, buff.size() - 4), this->_channels));
 	}
+	if (substr == "KICK")
+	{
+		if (passSent == false)
+			return (noPass(user));
+		return (commands.kick(user, this->_channels, buff.substr(4, buff.size() - 4)));
+	}
 	if (buff.substr(0, 5) == "TOPIC")
 	{
 		if (passSent == false)

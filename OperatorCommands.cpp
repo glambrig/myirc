@@ -353,6 +353,26 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 	return (0);
 }
 
+bool checkOpPrivs(const User& user, const Channel *chan)
+{
+	bool userIsOp = false;
+	std::vector<User> opList = chan->flags.operatorList;
+	for (std::vector<User>::const_iterator it = opList.begin(); it != opList.end(); it++)
+	{
+		if (it->nickname == user.nickname)
+		{
+			userIsOp = true;
+			break ;
+		}
+	}
+	if (chan->flags.topicOpOnly == true && userIsOp == false)
+	{
+		std::string CHANOPRIVSNEEDED(S_ERR_CHANOPRIVSNEEDED);
+		CHANOPRIVSNEEDED += ' ' + user.nickname + ' ' + chan->getChanName() + " :You're not a channel operator";
+		Commands::sendNumericReply(user, CHANOPRIVSNEEDED);
+	}
+	return (userIsOp);
+}
 /*Syntax: KICK <channel> <user> [<comment>]*/
 int	Commands::kick(const User& user, std::vector<Channel>& channelList, const std::string buffer) const
 {
@@ -362,13 +382,17 @@ int	Commands::kick(const User& user, std::vector<Channel>& channelList, const st
 	std::string buff = buffer.substr(0, buffer.size() - 2);
 
 	int spaceCount = 0;
-	for (size_t i = 1; i < buff.size(); i++)
+	for (size_t i = 0; i < buff.size(); i++)
 	{
 		if (buff[i] == ' ' && buff[i - 1] != ' ')
 			spaceCount++;
 	}
-	if (spaceCount < 2 || buff.find('#', 1) == std::string::npos)
-		return (-1);
+	if (spaceCount < 2)// || buff.find('#', 1) == std::string::npos
+	{
+		std::string NEEDMORE(S_ERR_NEEDMOREPARAMS);
+		NEEDMORE += " " + user.nickname + " KICK :Not enough parameters";
+		return (sendNumericReply(user, NEEDMORE));
+	}
 
 	if (channelList.empty())
 	{
@@ -380,17 +404,76 @@ int	Commands::kick(const User& user, std::vector<Channel>& channelList, const st
 	Channel *chan;
 	for (std::vector<Channel>::iterator it = channelList.begin(); it != channelList.end(); it++)
 	{
+		bool err = false;
 		size_t hashPos = buff.find('#');
-		std::string chanName(buff.substr(hashPos, buff.find(' ', buff.find('#'))));
+		std::string chanName(buff.substr(hashPos, buff.find(' ', buff.find('#')) - 1));
 
+		if (hashPos == std::string::npos)
+			err = true;
 		if (it->getChanName() == chanName)
 		{
 			Channel& temp = *it;
 			chan = &temp;
 			break ;
 		}
+		if (err == true || it + 1 == channelList.end())
+		{
+			std::string NOSUCHCHAN(S_ERR_NOSUCHCHANNEL);
+			NOSUCHCHAN += " " + user.nickname + " " + buff.substr(hashPos, buff.find(' ', buff.find('#'))) + " :No such channel";
+			return (sendNumericReply(user, NOSUCHCHAN));
+		}
 	}
-	
+
+	std::vector<User> memberList = chan->getChanMembers();
+	std::string temp(buff.substr(1, buff.size() - 1));
+	std::string targetUserStr(temp.substr(temp.find(' ', 0) + 1));
+	//if there's a comment/reason afterwards, trim targetUserStr
+	if (targetUserStr.find(' ', 0) != std::string::npos)
+		targetUserStr = targetUserStr.substr(0, targetUserStr.find(' ', 0));
+	//user can't kick themselves
+	if (targetUserStr == user.nickname)
+		return (-1);
+	if (memberList.empty() == true)
+	{
+		std::string NOSUCHNICK(S_ERR_NOSUCHNICK);
+		NOSUCHNICK += " " + user.nickname + " " + targetUserStr + " :No such nick";
+		return (sendNumericReply(user, NOSUCHNICK));
+	}
+	for (std::vector<User>::iterator it = memberList.begin(); it != memberList.end(); it++)
+	{
+		if (targetUserStr == it->nickname)
+		{
+			//if user isn't on chan, error
+			for (std::vector<User>::iterator subiter = memberList.begin(); subiter != memberList.end(); subiter++)
+			{
+				if (user.nickname == subiter->nickname)
+					break ;
+				else if (subiter + 1 == memberList.end())
+				{
+					std::string NOTONCHAN(S_ERR_NOTONCHANNEL);
+					NOTONCHAN += " " + user.nickname + " " + chan->getChanName() + " :You're not on that channel";
+					return (sendNumericReply(user, NOTONCHAN));
+				}
+			}
+			if (checkOpPrivs(user, chan) == false)
+				return (-1);
+			for (std::vector<User>::iterator replyiter = memberList.begin(); replyiter != memberList.end(); replyiter++)
+			{
+				std::string reply(":");
+				reply += user.nickname + "!" + user.username + "@localhost KICK" + buff + "\r\n";
+				send(replyiter->socket, reply.c_str(), reply.size(), 0);
+				// sendNumericReply(*replyiter, reply)
+			}
+			return (0);
+		}
+		else if (it + 1 == memberList.end())
+		{
+			std::string NOSUCHNICK(S_ERR_NOSUCHNICK);
+			NOSUCHNICK += " " + user.nickname + " " + targetUserStr + " :No such nick";
+			return (sendNumericReply(user, NOSUCHNICK));
+		}
+	}
+	return (-1);
 }
 
 int inviteParsing(const std::string buffer, std::string &targetUser)
