@@ -137,6 +137,12 @@ int Server::parseIncomingMessage(const std::string buff, const int i)
 			return (noPass(user));
 		return (commands.kick(user, this->_channels, buff.substr(4, buff.size() - 4)));
 	}
+	if (substr == "PART")
+	{
+		if (passSent == false)
+			return (noPass(user));
+		return (commands.part(user, buff.substr(4, buff.size() - 4), this->_channels));
+	}
 	if (buff.substr(0, 5) == "TOPIC")
 	{
 		if (passSent == false)
@@ -159,7 +165,7 @@ int Server::parseIncomingMessage(const std::string buff, const int i)
 }
 
 /*
-	XChat client sends NICK and User in a single call to send()
+	XChat client sends NICK and USER in a single call to send()
 	We need the commands separated in order to handle them properly.
 */
 std::vector<std::string>	splitRecvRes(std::string buff)
@@ -230,13 +236,16 @@ void	Server::handlePollIn(struct pollfd	**pfdsArr, size_t pfdsArrLen, size_t i, 
 		}
 		else
 		{
-			std::string strBuff = buff;
+			std::string strBuff(buff);
 			while (strBuff.find("\r\n") == std::string::npos && strBuff.size() < 512)
+			{
 				recv((*pfdsArr)[i].fd, &buff, 512, 0);
+				strBuff += buff;
+			}
 			
-			std::cout << "Server received message: " << buff << std::endl;////////
+			std::cout << "Server received message: " << strBuff << std::endl;////////
 
-			std::vector<std::string> splitBuff = splitRecvRes(buff);
+			std::vector<std::string> splitBuff = splitRecvRes(strBuff);
 			for (std::vector<std::string>::iterator it = splitBuff.begin(); it != splitBuff.end(); it++)
 				(void)parseIncomingMessage(*it, i - 1);
 		}

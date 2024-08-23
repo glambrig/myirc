@@ -462,7 +462,6 @@ int	Commands::kick(const User& user, std::vector<Channel>& channelList, const st
 				std::string reply(":");
 				reply += user.nickname + "!" + user.username + "@localhost KICK" + buff + "\r\n";
 				send(replyiter->socket, reply.c_str(), reply.size(), 0);
-				// sendNumericReply(*replyiter, reply)
 			}
 			return (0);
 		}

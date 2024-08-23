@@ -395,7 +395,89 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 	return (0);
 }
 
-/*<client> <nickname> :No such nick/channel*/
+/*<channel> [<reason>]*/
+int Commands::part(User& user, const std::string &buffer, std::vector<Channel> &channelList) const
+{
+	if (buffer.size() < 3 || buffer[0] != ' ' || buffer[1] != '#')
+		return (-1);
+	
+	std::string buff = buffer.substr(1, buffer.size() - 3);
+	
+	int spaceCount = 0;
+	for (size_t i = 0; i < buffer.size(); i++)
+	{
+		if (buffer[i] == ' ' && buffer[i - 1] != ' ')
+			spaceCount++;
+	}
+	if (spaceCount < 2)
+	{
+		std::string NEEDMORE(S_ERR_NEEDMOREPARAMS);
+		NEEDMORE += " " + user.nickname + " KICK :Not enough parameters";
+		return (sendNumericReply(user, NEEDMORE));
+	}
+	
+	if (channelList.empty())
+	{
+		std::string NOSUCHCHAN(S_ERR_NOSUCHCHANNEL);
+		size_t hashPos = buff.find('#');
+		NOSUCHCHAN += " " + user.nickname + " " + buff.substr(hashPos, buff.find(' ', buff.find('#'))) + " :No such channel";
+		return (sendNumericReply(user, NOSUCHCHAN));
+	}
+	Channel *chan;
+	for (std::vector<Channel>::iterator it = channelList.begin(); it != channelList.end(); it++)
+	{
+		bool err = false;
+		size_t hashPos = buff.find('#');
+		std::string chanName(buff.substr(hashPos, buff.find(' ', 0)));
+
+		if (hashPos == std::string::npos)
+			err = true;
+		if (it->getChanName() == chanName)
+		{
+			Channel& temp = *it;
+			chan = &temp;
+			break ;
+		}
+		if (err == true || it + 1 == channelList.end())
+		{
+			std::string NOSUCHCHAN(S_ERR_NOSUCHCHANNEL);
+			NOSUCHCHAN += " " + user.nickname + " " + buff.substr(hashPos, buff.find(' ', buff.find('#'))) + " :No such channel";
+			return (sendNumericReply(user, NOSUCHCHAN));
+		}
+	}
+
+	std::vector<User> usrList = chan->getChanMembers();
+	for (std::vector<User>::iterator it = usrList.begin(); it != usrList.end(); it++)
+	{
+		if (it->nickname == user.nickname)
+			break;
+		else if (it + 1 == usrList.end())
+		{
+			std::string NOTONCHAN(S_ERR_NOTONCHANNEL);
+			NOTONCHAN += " " + user.nickname + " " + chan->getChanName() + " :You're not on that channel";
+			return (sendNumericReply(user, NOTONCHAN));
+		}
+	}
+	
+	std::string res(":");
+	res += user.nickname + "!" + user.username + "@localhost PART " + chan->getChanName();
+	
+	std::string reason;
+	size_t spacePos;
+	spacePos = buff.find_last_of(' ');
+	reason = buff.substr(spacePos, buff.size());
+	if (reason != chan->getChanName())
+		res += reason;
+	for(std::vector<User>::iterator it = usrList.begin(); it != usrList.end(); it++)
+	{
+		// send(it->socket, res.c_str(), res.size(), 0);
+		sendNumericReply(*it, res);
+		if (it->nickname == user.nickname)
+			chan->removeMember(*it);
+	}
+	return (-1);
+}
+
 int	Commands::privmsgUser(User& user, const std::string &buffer, const std::string& target, const std::vector<User> &userList) const
 {
 	size_t messagePos = buffer.find(":", 0);
