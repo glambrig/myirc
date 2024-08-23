@@ -72,19 +72,13 @@ int	Commands::nick(User& user, const std::string buff, std::vector<User> &userLi
 
 	if (buff.find(startForbidden.c_str(), 0, 1) != std::string::npos || buff.find(forbidden) != std::string::npos || buff.size() - 1 > 9)
 	{
-		// std::string test(S_ERR_ERRONEUSNICKNAME + ' ' + user.username + ' ' + buff + " :Erroneus nickname");
-		std::string ERRONEUSNICKNAME;
-		ERRONEUSNICKNAME.clear();
-		ERRONEUSNICKNAME = S_ERR_ERRONEUSNICKNAME;
+		std::string ERRONEUSNICKNAME(S_ERR_ERRONEUSNICKNAME);
 		ERRONEUSNICKNAME += ' ';
 		if (user.username.empty())
 			ERRONEUSNICKNAME += '*';
 		else
 			ERRONEUSNICKNAME += user.username;
-		ERRONEUSNICKNAME +=  ' ';
-		ERRONEUSNICKNAME += buff.substr(1, buff.size() - 3);
-		ERRONEUSNICKNAME += " :Erroneus nickname";	//Actually spelled "erroneous" but ok
-		std::cout << ERRONEUSNICKNAME << std::endl;
+		ERRONEUSNICKNAME +=  " " + buff.substr(1, buff.size() - 3) + " :Erroneus nickname";
 		return (sendNumericReply(user, ERRONEUSNICKNAME));
 	}
 	size_t endPos = buff.find("\r\n", 0);	//careful: not checking for std::string::npos!
@@ -467,11 +461,11 @@ int Commands::part(User& user, const std::string &buffer, std::vector<Channel> &
 	spacePos = buff.find_last_of(' ');
 	reason = buff.substr(spacePos, buff.size());
 	if (reason != chan->getChanName())
-		res += reason;
+		res += reason + "\r\n";
 	for(std::vector<User>::iterator it = usrList.begin(); it != usrList.end(); it++)
 	{
-		// send(it->socket, res.c_str(), res.size(), 0);
-		sendNumericReply(*it, res);
+		send(it->socket, res.c_str(), res.size(), 0);
+		// sendNumericReply(*it, res);
 		if (it->nickname == user.nickname)
 			chan->removeMember(*it);
 	}
