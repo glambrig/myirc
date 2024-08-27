@@ -70,6 +70,16 @@ void	Server::clearClient(int fd)
 		{
 			std::string leavingMsg(" :Leaving");
 			Commands::quit(*it, leavingMsg, this->_users, this->pfdsArr);
+			for (std::vector<std::pair<int, std::string> >::iterator subiter = receivedCmds.begin(); subiter != receivedCmds.end(); subiter++)
+			{
+				if (subiter->first == fd)
+				{
+					receivedCmds.erase(subiter);
+					break ;
+				}
+			}
+			close(fd);
+			return ;
 		}
 	}
 }
@@ -243,9 +253,11 @@ void	Server::handlePollIn(size_t pfdsArrLen, size_t i, int listenfd)
 		int recvRes = recv(pfdsArr[i].fd, &buff, 512, 0);
 		if (recvRes <= 0)
 		{
-			close(pfdsArr[i].fd);
 			if (recvRes == 0)
+			{
+				clearClient(pfdsArr[i].fd);
 				std::cout << "Client disconnected" << std::endl;
+			}
 			else if (recvRes < 0)
 				throw ("Error receiving from fd");
 		}
@@ -258,11 +270,6 @@ void	Server::handlePollIn(size_t pfdsArrLen, size_t i, int listenfd)
 				temp.first = pfdsArr[i].fd;
 				temp.second = strBuff;
 				receivedCmds.push_back(temp);
-				// while (strBuff.find("\r\n") == std::string::npos && strBuff.size() < 512)
-				// {
-				// 	recv(pfdsArr[i].fd, &buff, 512, 0);
-				// 	strBuff += buff;
-				// }
 			}
 			else
 			{
@@ -270,7 +277,6 @@ void	Server::handlePollIn(size_t pfdsArrLen, size_t i, int listenfd)
 				{
 					if (pfdsArr[i].fd == it->first)
 					{
-						// it->second.clear();
 						if (it->second.empty())
 							it->second = strBuff;
 						else
@@ -288,21 +294,10 @@ void	Server::handlePollIn(size_t pfdsArrLen, size_t i, int listenfd)
 				}
 			}
 
-			////
 			for (std::vector<std::pair<int, std::string> >::iterator it = receivedCmds.begin(); it != receivedCmds.end(); it++)
 			{
 				if (pfdsArr[i].fd == it->first)
 				{
-					// while (it->second.find("\r\n") == std::string::npos && it->second.size() < 512)
-					// {
-					// 	recv(pfdsArr[i].fd, &buff, 512, 0);
-					// 	it->second += buff;
-					// 	if (it->second.find("\r\n") != std::string::npos)
-					// 	{
-					// 		strBuff = it->second;
-					// 		break ;
-					// 	}
-					// }
 					if (it->second.find("\r\n") == std::string::npos)
 						return ;
 					strBuff = it->second;
