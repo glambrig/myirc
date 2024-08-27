@@ -276,6 +276,7 @@ void	Server::handlePollIn(size_t pfdsArrLen, size_t i, int listenfd)
 						temp.first = pfdsArr[i].fd;
 						temp.second = strBuff;
 						receivedCmds.push_back(temp);
+						break ;
 					}
 				}
 			}
