@@ -30,6 +30,7 @@ private:
 	std::string				sPassword;
 	Commands				commands;
 	std::vector<struct pollfd>	pfdsArr;
+	std::vector<std::pair<int, std::string> > receivedCmds;
 public:
 	Server();
 	Server(const Server& copy);

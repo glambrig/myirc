@@ -252,13 +252,17 @@ void	Server::handlePollIn(size_t pfdsArrLen, size_t i, int listenfd)
 		else
 		{
 			std::string strBuff(buff);
-			static std::vector<std::pair<int, std::string> > receivedCmds;
-			if (receivedCmds.empty())
+			if (receivedCmds.empty()) //1st connected user
 			{
 				std::pair<int, std::string> temp;
 				temp.first = pfdsArr[i].fd;
 				temp.second = strBuff;
 				receivedCmds.push_back(temp);
+				// while (strBuff.find("\r\n") == std::string::npos && strBuff.size() < 512)
+				// {
+				// 	recv(pfdsArr[i].fd, &buff, 512, 0);
+				// 	strBuff += buff;
+				// }
 			}
 			else
 			{
@@ -266,11 +270,14 @@ void	Server::handlePollIn(size_t pfdsArrLen, size_t i, int listenfd)
 				{
 					if (pfdsArr[i].fd == it->first)
 					{
-						it->second.clear();
-						it->second = strBuff;
+						// it->second.clear();
+						if (it->second.empty())
+							it->second = strBuff;
+						else
+							it->second += strBuff;
 						break ;
 					}
-					if (it + 1 == receivedCmds.end())
+					if (it + 1 == receivedCmds.end()) //new user that isn't the 1st connected
 					{
 						std::pair<int, std::string> temp;
 						temp.first = pfdsArr[i].fd;
@@ -282,10 +289,26 @@ void	Server::handlePollIn(size_t pfdsArrLen, size_t i, int listenfd)
 			}
 
 			////
-			while (strBuff.find("\r\n") == std::string::npos && strBuff.size() < 512)
+			for (std::vector<std::pair<int, std::string> >::iterator it = receivedCmds.begin(); it != receivedCmds.end(); it++)
 			{
-				recv(pfdsArr[i].fd, &buff, 512, 0);
-				strBuff += buff;
+				if (pfdsArr[i].fd == it->first)
+				{
+					// while (it->second.find("\r\n") == std::string::npos && it->second.size() < 512)
+					// {
+					// 	recv(pfdsArr[i].fd, &buff, 512, 0);
+					// 	it->second += buff;
+					// 	if (it->second.find("\r\n") != std::string::npos)
+					// 	{
+					// 		strBuff = it->second;
+					// 		break ;
+					// 	}
+					// }
+					if (it->second.find("\r\n") == std::string::npos)
+						return ;
+					strBuff = it->second;
+					it->second.clear();
+					break ;
+				}
 			}
 			
 			std::cout << "Server received message: " << strBuff << std::endl;////////
