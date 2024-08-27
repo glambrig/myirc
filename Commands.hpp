@@ -102,6 +102,7 @@ typedef struct Commands
 	// int		who(const std::string buff, const std::vector<User> userList, const std::vector<Channel> channelList) const;
 	int		join(User& user, const std::string buff, std::vector<Channel> &channelList) const;
 	int		part(User& user, const std::string &buffer, std::vector<Channel> &channelList) const;
+	static int		quit(User& user, const std::string &buffer, std::vector<User> &userList, std::vector<struct pollfd> &pfdsArr);
 	int		privmsg(User& user, const std::string &buffer, const std::vector<Channel> &channelList, const std::vector<User> &userList) const;
 	int		privmsgUser(User& user, const std::string &buffer, const std::string& target, const std::vector<User> &userList) const;
 	int		privmsgChannel(User& user, const std::string &buffer, const std::string &target, const std::vector<Channel> &channelList) const;

@@ -13,9 +13,12 @@
 #include <sys/select.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <fcntl.h>
 #include <poll.h>
 #include <stdio.h>
 #include <map>
+
+void	ft_bzero(void *loc, size_t n);
 
 class Server
 {
@@ -26,19 +29,22 @@ private:
 	std::string				sPort;
 	std::string				sPassword;
 	Commands				commands;
+	std::vector<struct pollfd>	pfdsArr;
 public:
 	Server();
 	Server(const Server& copy);
 	Server(int ac, char **av);
 	Server& operator=(const Server& rhs);
 	~Server();
+	static bool					_signal;
 
 	std::vector<User>	getUsersFromServ();
 
 	void	parseArgs(int ac, char **av);
 	void	socketSetup(int &listenfd, struct sockaddr_in &servAddr);
-	void	handlePollIn(struct pollfd	**pfdsArr, size_t pfdsArrLen, size_t i, int listenfd);
+	void	handlePollIn(size_t pfdsArrLen, size_t i, int listenfd);
 
+	void	clearClient(int fd);
 	int		parseIncomingMessage(const std::string buffer, const int i);
 
 	void	run();

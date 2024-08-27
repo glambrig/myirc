@@ -469,7 +469,36 @@ int Commands::part(User& user, const std::string &buffer, std::vector<Channel> &
 		if (it->nickname == user.nickname)
 			chan->removeMember(*it);
 	}
-	return (-1);
+	return (0);
+}
+
+int Commands::quit(User& user, const std::string &buffer, std::vector<User> &userList, std::vector<struct pollfd> &pfdsArr)
+{
+	if ((buffer[0] != ' ' && buffer[0] != '\0') && buffer.find(':') == std::string::npos)
+		return (-1);
+
+	for (std::vector<User>::iterator it = userList.begin(); it != userList.end(); it++)
+	{
+		std::string quitMsg(':' + user.nickname + '!' + user.username + "@localhost QUIT" + buffer);
+		send(it->socket, quitMsg.c_str(), quitMsg.size(), 0);
+	}
+	for (std::vector<struct pollfd>::iterator it = pfdsArr.begin(); it != pfdsArr.end(); it++)
+	{
+		if (it->fd == user.socket)
+		{
+			pfdsArr.erase(it);
+			break ;
+		}
+	}
+	for (std::vector<User>::iterator it = userList.begin(); it != userList.end(); it++)
+	{
+		if (it->nickname == user.nickname)
+		{
+			userList.erase(it);
+			break ;
+		}
+	}
+	return (0);
 }
 
 int	Commands::privmsgUser(User& user, const std::string &buffer, const std::string& target, const std::vector<User> &userList) const
@@ -504,6 +533,13 @@ int	Commands::privmsgChannel(User& user, const std::string &buffer, const std::s
 			std::vector<User> chanMembers = it->getChanMembers();
 			//Full client identifier + PRIVMSG + #channel + :message
 			std::string fullMsg(':' + user.nickname + '!' + user.username + "@localhost " + "PRIVMSG" + buffer);
+			for (std::vector<User>::iterator subiter = chanMembers.begin(); subiter != chanMembers.end(); subiter++)
+			{
+				if (subiter->nickname == user.nickname)
+					break ;
+				if (subiter + 1 == chanMembers.end())
+					return (-1);
+			}
 			for (std::vector<User>::iterator subiter = chanMembers.begin(); subiter != chanMembers.end(); subiter++)
 			{
 				if (subiter->nickname != user.nickname)
