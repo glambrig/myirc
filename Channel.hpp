@@ -28,7 +28,6 @@ class Channel
 private:
 	std::string			_name;
 	std::string			_topic;
-	std::vector<User>	_chanMembers;
 	LastTopic			_lastTopic;
 public:
 	Channel();
@@ -37,6 +36,7 @@ public:
 	~Channel();
 
 	ModeFlags			flags;
+	std::vector<User>	_chanMembers;	//terrible, but way easier than turning it into User* everywhere
 
 	void				setChanName(const std::string name);
 	std::string			getChanName() const;

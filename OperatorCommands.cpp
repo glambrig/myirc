@@ -399,7 +399,7 @@ int	Commands::kick(const User& user, std::vector<Channel>& channelList, const st
 		if (buff[i] == ' ' && buff[i - 1] != ' ')
 			spaceCount++;
 	}
-	if (spaceCount < 2)// || buff.find('#', 1) == std::string::npos
+	if (spaceCount < 2)
 	{
 		std::string NEEDMORE(S_ERR_NEEDMOREPARAMS);
 		NEEDMORE += " " + user.nickname + " KICK :Not enough parameters";
@@ -475,6 +475,7 @@ int	Commands::kick(const User& user, std::vector<Channel>& channelList, const st
 				reply += user.nickname + "!" + user.username + "@localhost KICK" + buff + "\r\n";
 				send(replyiter->socket, reply.c_str(), reply.size(), 0);
 			}
+			chan->_chanMembers.erase(it);
 			return (0);
 		}
 		else if (it + 1 == memberList.end())
