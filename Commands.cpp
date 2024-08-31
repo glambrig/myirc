@@ -349,7 +349,7 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 		chan = &newChan;
 		chan->setChanName(buff);
 		chan->addMember(user);
-		chan->flags.operatorList.push_back(user);
+		chan->flags.operatorList.push_back(&user);
 		channelList.push_back(*chan);
 	}
 	std::string joinReply(":" + user.nickname + "!" + user.username + "@" + "localhost" + " JOIN " + buff + "\r\n");
@@ -372,9 +372,9 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 	for (std::vector<User>::const_iterator it = members.begin(); it != members.end(); it++)
 	{
 		std::string name(NAMREPLY);
-		for (std::vector<User>::const_iterator subiter = chan->flags.operatorList.begin(); subiter != chan->flags.operatorList.end(); subiter++)
+		for (std::vector<User *>::const_iterator subiter = chan->flags.operatorList.begin(); subiter != chan->flags.operatorList.end(); subiter++)
 		{
-			if (it->nickname == subiter->nickname)
+			if (it->nickname == (*subiter)->nickname)
 				name += '@';
 		}
 		name += it->nickname;
@@ -406,7 +406,7 @@ int Commands::part(User& user, const std::string &buffer, std::vector<Channel> &
 	if (spaceCount < 2)
 	{
 		std::string NEEDMORE(S_ERR_NEEDMOREPARAMS);
-		NEEDMORE += " " + user.nickname + " KICK :Not enough parameters";
+		NEEDMORE += " " + user.nickname + " PART :Not enough parameters";
 		return (sendNumericReply(user, NEEDMORE));
 	}
 	
@@ -465,9 +465,16 @@ int Commands::part(User& user, const std::string &buffer, std::vector<Channel> &
 	for(std::vector<User>::iterator it = usrList.begin(); it != usrList.end(); it++)
 	{
 		send(it->socket, res.c_str(), res.size(), 0);
-		// sendNumericReply(*it, res);
 		if (it->nickname == user.nickname)
 			chan->removeMember(*it);
+	}
+	for(std::vector<User *>::iterator it = chan->flags.operatorList.begin(); it != chan->flags.operatorList.end(); it++)
+	{
+		if ((*it)->nickname == user.nickname)
+		{
+			chan->flags.operatorList.erase(it);
+			break ;
+		}
 	}
 	return (0);
 }

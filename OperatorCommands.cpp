@@ -89,10 +89,10 @@ int	Commands::topic(const User& user, const std::string& buff, std::vector<Chann
 	else
 	{
 		bool userIsOp = false;
-		std::vector<User> opList = chan->flags.operatorList;
-		for (std::vector<User>::const_iterator it = opList.begin(); it != opList.end(); it++)
+		std::vector<User *> opList = chan->flags.operatorList;
+		for (std::vector<User *>::const_iterator it = opList.begin(); it != opList.end(); it++)
 		{
-			if (it->nickname == user.nickname)
+			if ((*it)->nickname == user.nickname)
 			{
 				userIsOp = true;
 				break ;
@@ -183,10 +183,10 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 	if (modes.empty() || modes == buff)	//' ' wasn't found in buff
 		return (sendNumericReply(user, emptyModeCommand(user, chan)));
 	//check if user is op
-	std::vector<User> opList = chan->flags.operatorList;
-	for (std::vector<User>::const_iterator it = opList.begin(); it != opList.end(); it++)
+	std::vector<User *> &opList = chan->flags.operatorList;
+	for (std::vector<User *>::const_iterator it = opList.begin(); it != opList.end(); it++)
 	{
-		if (user.nickname == it->nickname)
+		if (user.nickname == (*it)->nickname)
 			break ;
 		if (it + 1 == opList.end())
 			return (-1);
@@ -287,7 +287,7 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 				else
 					asdf = params;
 				
-				std::cout << chan->flags.operatorList.size() << std::endl;
+				std::cout << "operatorList.size() = " << chan->flags.operatorList.size() << std::endl;
 
 				std::vector<User> members = chan->getChanMembers();
 				for (std::vector<User>::iterator it = members.begin(); it !=  members.end(); it++)
@@ -295,16 +295,28 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 					if (it->nickname == asdf)
 					{
 						if (plus)
-							chan->flags.operatorList.push_back(*it);
+						{
+							bool targetIsOp = false;
+							for (std::vector<User *>::iterator it = opList.begin(); it != opList.end(); it++)
+							{
+								if ((*it)->nickname == asdf)
+								{
+									targetIsOp = true;
+									break ;
+								}
+							}
+							if (targetIsOp == true)	//If target is already OP, don't push onto operatorList
+								break ;
+							chan->flags.operatorList.push_back(&(*it));
+						}
 						else
 						{
-							std::vector<User> opList = chan->flags.operatorList;
-							for (std::vector<User>::iterator subiter = opList.begin(); subiter != opList.end(); subiter++)
+							for (std::vector<User *>::iterator subiter = opList.begin(); subiter != opList.end(); subiter++)
 							{
-								if (subiter->nickname == asdf)
+								if ((*subiter)->nickname == asdf)
 								{
 									opList.erase(subiter);
-									std::cout << "after:" << opList.size() << std::endl;
+									std::cout << "size after:" << opList.size() << std::endl;
 									break ;
 								}
 							}
@@ -356,10 +368,10 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 bool checkOpPrivs(const User& user, const Channel *chan)
 {
 	bool userIsOp = false;
-	std::vector<User> opList = chan->flags.operatorList;
-	for (std::vector<User>::const_iterator it = opList.begin(); it != opList.end(); it++)
+	std::vector<User *> opList = chan->flags.operatorList;
+	for (std::vector<User *>::const_iterator it = opList.begin(); it != opList.end(); it++)
 	{
-		if (it->nickname == user.nickname)
+		if ((*it)->nickname == user.nickname)
 		{
 			userIsOp = true;
 			break ;
@@ -483,7 +495,7 @@ int inviteParsing(const std::string buffer, std::string &targetUser)
 	std::string buff = buffer.substr(0, buffer.size() - 2);
 	
 	int spaceCount = 0;
-	for (size_t i = 1; i < buff.size(); i++)
+	for (size_t i = 0; i < buff.size(); i++)
 	{
 		if (buff[i] == ' ' && buff[i - 1] != ' ')
 			spaceCount++;
@@ -547,10 +559,10 @@ int	Commands::invite(const User& user, const std::string buffer, std::vector<Cha
 	}
 	if (chan->flags.inviteOnly == true)
 	{
-		std::vector<User> opList = chan->flags.operatorList;
-		for (std::vector<User>::iterator it = opList.begin(); it != opList.end(); it++)
+		std::vector<User *> opList = chan->flags.operatorList;
+		for (std::vector<User *>::iterator it = opList.begin(); it != opList.end(); it++)
 		{
-			if (user.nickname == it->nickname)
+			if (user.nickname == (*it)->nickname)
 				break ;
 			else if (it + 1 == opList.end())
 			{

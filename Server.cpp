@@ -228,8 +228,8 @@ void	Server::handlePollIn(size_t pfdsArrLen, size_t i, int listenfd)
 		int clientfd = accept(listenfd, NULL, NULL);
 		if (clientfd < 0)
 			throw ("Error accepting connection.");
-		// if (fcntl(clientfd, F_SETFL, O_NONBLOCK) < 0)
-		// 	throw ("fcntl() failed.");
+		if (fcntl(clientfd, F_SETFL, O_NONBLOCK) < 0)
+			throw ("fcntl() failed.");
 
 		struct pollfd temp;
 		temp.fd = clientfd;
@@ -332,17 +332,13 @@ void	Server::run()
 		return ;
 	}
 
-	// struct pollfd	*pfdsArr = new struct pollfd[MAX_CLIENTS];	//can be alloc'd and freed in constructor/destructor
 	struct pollfd	pfd;
 	pfd.fd = listenfd;
-	pfd.events = POLLIN | POLLPRI | POLLRDHUP | POLLERR | POLLHUP;
-	// pfdsArr[0] = pfd;
+	pfd.events = POLLIN | POLLPRI;
 	pfdsArr.push_back(pfd);
 
-	// for (size_t i = 1; i < MAX_CLIENTS; i++)
-	// 	pfdsArr[i].fd = 0;
-
 	std::cout << "Server is running." << std::endl;
+
 	try
 	{
 		while (Server::_signal == false)
@@ -359,12 +355,6 @@ void	Server::run()
 
 				if (pfdsArr[i].revents & POLLPRI)
 					std::cout << "POLLPRI called" << std::endl;
-				if (pfdsArr[i].revents & POLLERR)
-					std::cout << "POLLERR called" << std::endl;
-				if (pfdsArr[i].revents & POLLRDHUP)
-					std::cout << "POLLRDHUP called" << std::endl;
-				if (pfdsArr[i].revents & POLLHUP)
-					std::cout << "POLLHUP called" << std::endl;
 				//TODO:
 				/*Add all the POLLIN, POLLERR... options to see which one triggers when nc client ctrl+z'd
 					and deal with it*/
