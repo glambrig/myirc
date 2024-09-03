@@ -15,7 +15,6 @@ Commands::Commands()
 	cmdList.push_back(newCmd);
 	newCmd = "PRIVMSG";
 	cmdList.push_back(newCmd);
-	hasRegistered = false;
 }
 
 bool	Commands::isValidCommand(const std::string &s) const
@@ -50,10 +49,11 @@ int		Commands::pass(User& user, const std::string& buffer, const std::string& pa
 		std::string PASSMISMATCH(S_ERR_PASSWDMISMATCH);
 		PASSMISMATCH += " * :Password incorrect";
 		sendNumericReply(user, PASSMISMATCH);
+		return (-1);
 	}
 	else
 	{
-		std::cout << "password is fine :)" << std::endl;
+		std::cout << "Password is correct! :)" << std::endl;
 	}
 	return (0);
 }
@@ -166,7 +166,7 @@ int	Commands::user(User& user, std::string buff)
 		std::string NEEDMOREPARAMS = "* :Not enough parameters";
 		return (sendNumericReply(user, NEEDMOREPARAMS));
 	}
-	if (hasRegistered == true)
+	if (user.hasRegistered == true)
 	{
 		std::string ALREADYREGISTERED(S_ERR_ALREADYREGISTERED + ' ' + user.username + " USER : You may not reregister");
 		return (sendNumericReply(user, ALREADYREGISTERED));
@@ -265,21 +265,50 @@ int	joinParse(const std::string &buffer)
 	return (0);	
 }
 
+int	Commands::joinLeaveAll(User& user, std::vector<Channel> &channelList) const
+{
+	for (std::vector<Channel>::iterator it = channelList.begin(); it != channelList.end(); it++)
+	{
+		std::vector<User> members = it->getChanMembers();
+		for (std::vector<User>::iterator subiter = members.begin(); subiter != members.end(); subiter++)
+		{
+			if (user.nickname == subiter->nickname)
+			{
+				std::string res(":");
+				res += user.nickname + "!" + user.username + "@localhost PART " + it->getChanName() + " :Leaving\r\n";
+				send(subiter->socket, res.c_str(), res.size(), 0);
+				if (subiter->nickname == user.nickname)
+					it->removeMember(*subiter);
+				for(std::vector<User *>::iterator opList = it->flags.operatorList.begin(); opList != it->flags.operatorList.end(); opList++)
+				{
+					if ((*opList)->nickname == user.nickname)
+					{
+						it->flags.operatorList.erase(opList);
+						break ;
+					}
+				}
+				break ;
+			}
+		}
+	}
+	return (0);
+}
+
 int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &channelList) const
 {
-	if (joinParse(buffer) < 0)
-	{
-		std::string BADCHANMASK = S_ERR_BADCHANMASK;
-		BADCHANMASK += ' ';
-		BADCHANMASK += buffer.substr(1, buffer.size() - 3);
-		BADCHANMASK += " :Bad Channel Mask";
-		return (sendNumericReply(user, BADCHANMASK));
-	}
 	std::string buff = buffer.substr(1, buffer.size() - 3);	//removing the space and \r\n to leave only '#channelname [params]'
-	
 	bool	channelExists = false;
 	Channel *chan;
 	Channel newChan;
+
+	if (buff[0] == '0' && buff.size() == 1)
+		return (joinLeaveAll(user, channelList));
+	if (joinParse(buffer) < 0)
+	{
+		std::string BADCHANMASK(S_ERR_BADCHANMASK);
+		BADCHANMASK += " " + buffer.substr(1, buffer.size() - 3) + " :Bad Channel Mask";
+		return (sendNumericReply(user, BADCHANMASK));
+	}
 	for (std::vector<Channel>::iterator it = channelList.begin(); it != channelList.end(); it++)
 	{
 		if (buff == it->getChanName() || buff.substr(0, buff.find(' ', 0)) == it->getChanName())
@@ -298,6 +327,12 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 			CHANNELFULL += " " + user.nickname + " " + chan->getChanName() + " :Cannot join channel (+l)";
 			return (sendNumericReply(user, CHANNELFULL));
 		}
+		/*
+			When all users leave a channel, it's not actually deleted from the server's memory.
+			Therefore, if someone "rejoins" the channel that everyone left, that user should gain operator privileges.
+		*/
+		if (chan->getChanMembers().size() == 0)
+			chan->flags.operatorList.push_back(&user);
 		size_t posTry = buff.find(' ');
 		std::string passTry;
 		if (posTry != std::string::npos)
@@ -323,7 +358,7 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 		}
 		else
 		{
-			std::vector<User *> invitedUsers = chan->flags.invitedUsers;
+			std::vector<User *> &invitedUsers = chan->flags.invitedUsers;
 			bool invited = false;
 			for (std::vector<User *>::iterator it = invitedUsers.begin(); it != invitedUsers.end(); it++)
 			{
@@ -364,7 +399,7 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 	/*<client> <symbol> <channel> :[prefix]<nick>{ [prefix]<nick>}*/
 	std::string NAMREPLY(S_RPL_NAMREPLY);
 
-	NAMREPLY += ' ' + user.nickname + " = ";
+	NAMREPLY += " " + user.nickname + " = ";
 	NAMREPLY += chan->getChanName();
 	NAMREPLY += " :";
 
@@ -392,7 +427,7 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 /*<channel> [<reason>]*/
 int Commands::part(User& user, const std::string &buffer, std::vector<Channel> &channelList) const
 {
-	if (buffer.size() < 3 || buffer[0] != ' ' || buffer[1] != '#')
+	if (buffer.size() < 3 || buffer[0] != ' ') // || buffer[1] != '#'
 		return (-1);
 	
 	std::string buff = buffer.substr(1, buffer.size() - 3);
@@ -409,7 +444,6 @@ int Commands::part(User& user, const std::string &buffer, std::vector<Channel> &
 		NEEDMORE += " " + user.nickname + " PART :Not enough parameters";
 		return (sendNumericReply(user, NEEDMORE));
 	}
-	
 	if (channelList.empty())
 	{
 		std::string NOSUCHCHAN(S_ERR_NOSUCHCHANNEL);
@@ -417,6 +451,7 @@ int Commands::part(User& user, const std::string &buffer, std::vector<Channel> &
 		NOSUCHCHAN += " " + user.nickname + " " + buff.substr(hashPos, buff.find(' ', buff.find('#'))) + " :No such channel";
 		return (sendNumericReply(user, NOSUCHCHAN));
 	}
+
 	Channel *chan;
 	for (std::vector<Channel>::iterator it = channelList.begin(); it != channelList.end(); it++)
 	{
@@ -484,11 +519,11 @@ int Commands::quit(User& user, const std::string &buffer, std::vector<User> &use
 	if ((buffer[0] != ' ' && buffer[0] != '\0') && buffer.find(':') == std::string::npos)
 		return (-1);
 
+	std::string quitMsg(':' + user.nickname + '!' + user.username + "@localhost QUIT" + buffer);
+	if (buffer[buffer.size() - 2] != '\r' && buffer[buffer.size() - 1] != '\n')
+		quitMsg += "\r\n";
 	for (std::vector<User>::iterator it = userList.begin(); it != userList.end(); it++)
-	{
-		std::string quitMsg(':' + user.nickname + '!' + user.username + "@localhost QUIT" + buffer);
 		send(it->socket, quitMsg.c_str(), quitMsg.size(), 0);
-	}
 	for (std::vector<struct pollfd>::iterator it = pfdsArr.begin(); it != pfdsArr.end(); it++)
 	{
 		if (it->fd == user.socket)
@@ -567,7 +602,6 @@ int		Commands::privmsg(User& user, const std::string &buffer, const std::vector<
 		//if user, send it
 		//if channel, find out who's in it, and send to all of them
 
-	// (void)userList;
 	if (buffer.empty() == true || buffer[0] != ' ')
 	{
 		std::string NORECIPIENT = S_ERR_NORECIPIENT;

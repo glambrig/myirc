@@ -8,8 +8,12 @@
 
 typedef struct	User
 {
+	bool hasRegistered;
+	bool enteredPass;
 	std::string	username;
 	std::string	nickname;
 	int 		socket;
+
+	User();
 
 }	User;

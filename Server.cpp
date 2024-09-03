@@ -89,107 +89,150 @@ void	Server::socketSetup(int &listenfd, struct sockaddr_in &servAddr)
 	listenfd = socket(AF_INET, SOCK_STREAM, 0);
 	int one = 1;
 
-	if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(int)) < 0)
+	if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &one, sizeof(int)) < 0)
 		throw ("Server::socketSetup::Sock option error");
 	if (listenfd < 0)
 		throw ("Server::socketSetup::Error creating socket.");
 	servAddr.sin_family = AF_INET;	//Expecting an internet address (ip)
 	servAddr.sin_port = htons(_port);	//Incoming connections on port _port (specified by user)
 	servAddr.sin_addr.s_addr = htonl(INADDR_ANY);	//Accept connections from any IP address
-	if (fcntl(listenfd, F_SETFL, O_NONBLOCK) < 0)
-		throw ("Server::socketSetup::fcntl() failed.");
+	// if (fcntl(listenfd, F_SETFL, O_NONBLOCK) < 0)///////////
+	// 	throw ("Server::socketSetup::fcntl() failed.");///////////
 	if (bind(listenfd, (struct sockaddr *)&servAddr, sizeof(servAddr)) < 0)
 		throw ("Server::socketSetup::Error binding address to socket.");
 	if (listen(listenfd, MAX_CLIENTS) < 0)
 		throw ("Server::socketSetup::Error listening for connections.");
 }
 
-int	noPass(User& user)
-{
-	std::string error(":localhost * ERROR :No password provided\r\n");
-	send(user.socket, error.c_str(), error.size(), 0);
-	close(user.socket);
-	return (-1);
-}
+// int	noPass(User& user)
+// {
+// 	std::string error(":localhost * ERROR :No password provided\r\n");
+// 	send(user.socket, error.c_str(), error.size(), 0);
+// 	clearClient(user.socket);
+// 	return (-1);
+// }
 
-/*This function NEEDS to be revised. Parsing is pretty bad. Ex. passing "MODES" will go into MODE command*/
 int Server::parseIncomingMessage(const std::string buff, const int i)
 {
 	User& 			user = _users[i];
 	static Commands	commands;
+	std::string		substr4 = buff.substr(0, 4);
 
 	if (buff.length() < 4)
 		return (-1);
-	std::string substr = buff.substr(0, 4);
-	
-	static bool passSent = false;
-	if (substr == "PASS")
+	if (substr4 == "PASS")
 	{
-		passSent = true;
-		return (commands.pass(user, buff.substr(4, buff.size() - 4), this->sPassword));
+		if (commands.pass(user, buff.substr(4, buff.size() - 4), this->sPassword) != -1)
+			user.enteredPass = true;
+		return (0);
 	}
- 	if (substr == "NICK")
+	if (user.enteredPass == false)
 	{
-		if (passSent == false)
-			return (noPass(user));
+		std::string error(":localhost * ERROR :No password provided\r\n");
+		send(user.socket, error.c_str(), error.size(), 0);
+		return (-1);
+	}
+	if (substr4 == "NICK")
 		return (commands.nick(user, buff.substr(4, buff.size() - 4), this->_users));
-	}
-	if (substr == "USER")
-	{
-		if (passSent == false)
-			return (noPass(user));
+	if (substr4 == "USER")
 		return (commands.user(user, buff.substr(4, buff.size() - 4)));
-	}
-	if (substr == "JOIN")
-	{
-		if (passSent == false)
-			return (noPass(user));
+	if (substr4 == "JOIN")
 		return (commands.join(user, buff.substr(4, buff.size() - 4), this->_channels));
-	}
-	if (substr == "MODE")
-	{
-		if (passSent == false)
-			return (noPass(user));	
+	if (substr4 == "MODE")
 		return (commands.mode(user, buff.substr(4, buff.size() - 4), this->_channels));
-	}
-	if (substr == "KICK")
-	{
-		if (passSent == false)
-			return (noPass(user));
+	if (substr4 == "KICK")
 		return (commands.kick(user, this->_channels, buff.substr(4, buff.size() - 4)));
-	}
-	if (substr == "PART")
-	{
-		if (passSent == false)
-			return (noPass(user));
+	if (substr4 == "PART")
 		return (commands.part(user, buff.substr(4, buff.size() - 4), this->_channels));
-	}
-	if (substr == "QUIT")
-	{
-		if (passSent == false)
-			return (noPass(user));
+	if (substr4 == "QUIT")
 		return (commands.quit(user, buff.substr(4, buff.size() - 4), this->_users, this->pfdsArr));
-	}
 	if (buff.substr(0, 5) == "TOPIC")
-	{
-		if (passSent == false)
-			return (noPass(user));
 		return (commands.topic(user, buff.substr(5, buff.size() - 5), this->_channels));
-	}
 	if (buff.substr(0, 6) == "INVITE")
-	{
-		if (passSent == false)
-			return (noPass(user));
 		return (commands.invite(user, buff.substr(6, buff.size() - 6), this->_channels, this->_users));
-	}
 	if (buff.substr(0, 7) == "PRIVMSG")
-	{
-		if (passSent == false)
-			return (noPass(user));
 		return (commands.privmsg(user, buff.substr(7, buff.size() - 7), this->_channels, this->_users));
-	}
 	return (-1);
 }
+
+/*This function NEEDS to be revised. Parsing is pretty bad. Ex. passing "MODES" will go into MODE command*/
+// int Server::parseIncomingMessage(const std::string buff, const int i)
+// {
+// 	User& 			user = _users[i];
+// 	static Commands	commands;
+
+// 	if (buff.length() < 4)
+// 		return (-1);
+// 	std::string substr = buff.substr(0, 4);
+	
+// 	static bool passSent = false;
+// 	if (substr == "PASS")
+// 	{
+// 		passSent = true;
+// 		return (commands.pass(user, buff.substr(4, buff.size() - 4), this->sPassword));
+// 	}
+//  	if (substr == "NICK")
+// 	{
+// 		if (passSent == false)
+// 			return (noPass(user));
+// 		return (commands.nick(user, buff.substr(4, buff.size() - 4), this->_users));
+// 	}
+// 	if (substr == "USER")
+// 	{
+// 		if (passSent == false)
+// 			return (noPass(user));
+// 		return (commands.user(user, buff.substr(4, buff.size() - 4)));
+// 	}
+// 	if (substr == "JOIN")
+// 	{
+// 		if (passSent == false)
+// 			return (noPass(user));
+// 		return (commands.join(user, buff.substr(4, buff.size() - 4), this->_channels));
+// 	}
+// 	if (substr == "MODE")
+// 	{
+// 		if (passSent == false)
+// 			return (noPass(user));	
+// 		return (commands.mode(user, buff.substr(4, buff.size() - 4), this->_channels));
+// 	}
+// 	if (substr == "KICK")
+// 	{
+// 		if (passSent == false)
+// 			return (noPass(user));
+// 		return (commands.kick(user, this->_channels, buff.substr(4, buff.size() - 4)));
+// 	}
+// 	if (substr == "PART")
+// 	{
+// 		if (passSent == false)
+// 			return (noPass(user));
+// 		return (commands.part(user, buff.substr(4, buff.size() - 4), this->_channels));
+// 	}
+// 	if (substr == "QUIT")
+// 	{
+// 		if (passSent == false)
+// 			return (noPass(user));
+// 		return (commands.quit(user, buff.substr(4, buff.size() - 4), this->_users, this->pfdsArr));
+// 	}
+// 	if (buff.substr(0, 5) == "TOPIC")
+// 	{
+// 		if (passSent == false)
+// 			return (noPass(user));
+// 		return (commands.topic(user, buff.substr(5, buff.size() - 5), this->_channels));
+// 	}
+// 	if (buff.substr(0, 6) == "INVITE")
+// 	{
+// 		if (passSent == false)
+// 			return (noPass(user));
+// 		return (commands.invite(user, buff.substr(6, buff.size() - 6), this->_channels, this->_users));
+// 	}
+// 	if (buff.substr(0, 7) == "PRIVMSG")
+// 	{
+// 		if (passSent == false)
+// 			return (noPass(user));
+// 		return (commands.privmsg(user, buff.substr(7, buff.size() - 7), this->_channels, this->_users));
+// 	}
+// 	return (-1);
+// }
 
 /*
 	XChat client sends NICK and USER in a single call to send()
@@ -228,8 +271,8 @@ void	Server::handlePollIn(size_t pfdsArrLen, size_t i, int listenfd)
 		int clientfd = accept(listenfd, NULL, NULL);
 		if (clientfd < 0)
 			throw ("Error accepting connection.");
-		if (fcntl(clientfd, F_SETFL, O_NONBLOCK) < 0)
-			throw ("fcntl() failed.");
+		// if (fcntl(clientfd, F_SETFL, O_NONBLOCK) < 0)
+		// 	throw ("fcntl() failed.");
 
 		struct pollfd temp;
 		temp.fd = clientfd;
@@ -344,20 +387,19 @@ void	Server::run()
 		while (Server::_signal == false)
 		{
 			size_t pfdsArrLen = pfdsArr.size();
-			int pollreturn = poll(&pfdsArr[0], pfdsArrLen, -1);
+			int pollreturn = poll(&pfdsArr[0], pfdsArrLen, 50);
 			if (pollreturn < 0)
+			{
+				if (Server::_signal == false)
+					return ;
 				throw ("Poll returned negative value");
+			}
 
 			for (size_t i = 0; i < pfdsArrLen; i++)
 			{
-				if (pfdsArr[i].revents & POLLIN)
+				if (pfdsArr[i].revents & (POLLIN | POLLPRI))
 					handlePollIn(pfdsArrLen, i, listenfd);
-
-				if (pfdsArr[i].revents & POLLPRI)
-					std::cout << "POLLPRI called" << std::endl;
-				//TODO:
-				/*Add all the POLLIN, POLLERR... options to see which one triggers when nc client ctrl+z'd
-					and deal with it*/
+				pfdsArrLen = pfdsArr.size();
 			}
 		}
 		for (std::vector<User>::iterator it = this->_users.begin(); it != this->_users.end(); it++)
