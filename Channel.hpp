@@ -36,7 +36,7 @@ public:
 	~Channel();
 
 	ModeFlags			flags;
-	std::vector<User>	_chanMembers;	//terrible, but way easier than turning it into User* everywhere
+	std::vector<User*>	_chanMembers;	//terrible, but way easier than turning it into User* everywhere
 
 	void				setChanName(const std::string name);
 	std::string			getChanName() const;
@@ -46,7 +46,7 @@ public:
 	LastTopic			getLastTopic();
 	void				setLastTopic(const std::string s);
 
-	std::vector<User>	getChanMembers() const;
-	void				addMember(User &user);
-	void				removeMember(User &user);
+	std::vector<User*>	getChanMembers() const;
+	void				addMember(User* user);
+	void				removeMember(User* user);
 };

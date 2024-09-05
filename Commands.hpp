@@ -38,7 +38,7 @@
 #define RPL_NAMREPLY 353
 #define RPL_ENDOFNAMES 366
 #define ERR_CHANNELISFULL 471
-#define ERR_BADCHANNELKEY 475 
+#define ERR_BADCHANNELKEY 475
 #define ERR_INVITEONLYCHAN 473
 #define S_ERR_BADCHANMASK "476"
 #define S_RPL_TOPIC "332"
@@ -96,20 +96,20 @@ typedef struct Commands
 	static int		sendNumericReply(const User &user, const std::string& err);
 
 	int		pass(User& user, const std::string& buff, const std::string& password) const;
-	int		nick(User& user, const std::string buff, std::vector<User> &userList);
+	int		nick(User* user, const std::string buff, std::vector<User*> &userList);
 	int		parseUserBuff(const std::string &buff) const;
 	int		user(User& user, std::string buff);
 	int		joinLeaveAll(User& user, std::vector<Channel>& channelList) const;
 	int		join(User& user, const std::string buff, std::vector<Channel> &channelList) const;
 	int		part(User& user, const std::string &buffer, std::vector<Channel> &channelList) const;
-	static int		quit(User& user, const std::string &buffer, std::vector<User> &userList, std::vector<struct pollfd> &pfdsArr);
-	int		privmsg(User& user, const std::string &buffer, const std::vector<Channel> &channelList, const std::vector<User> &userList) const;
-	int		privmsgUser(User& user, const std::string &buffer, const std::string& target, const std::vector<User> &userList) const;
+	static int		quit(User& user, const std::string &buffer, std::vector<User*> &userList, std::vector<struct pollfd> &pfdsArr);
+	int		privmsg(User& user, const std::string &buffer, const std::vector<Channel> &channelList, const std::vector<User*> &userList) const;
+	int		privmsgUser(User& user, const std::string &buffer, const std::string& target, const std::vector<User*> &userList) const;
 	int		privmsgChannel(User& user, const std::string &buffer, const std::string &target, const std::vector<Channel> &channelList) const;
 
 	/*Operator Commands*/
 	int		topic(const User& user, const std::string& buff, std::vector<Channel> &channelList) const;
 	int		mode(const User& user, const std::string buff, std::vector<Channel> &channelList) const;
 	int		kick(const User& user, std::vector<Channel>& channelList, const std::string buffer) const;
-	int		invite(const User& user, const std::string buffer, std::vector<Channel> &channelList, std::vector<User> &userList) const;
+	int		invite(const User& user, const std::string buffer, std::vector<Channel> &channelList, std::vector<User*> &userList) const;
 }	Commands;

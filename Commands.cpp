@@ -58,13 +58,13 @@ int		Commands::pass(User& user, const std::string& buffer, const std::string& pa
 	return (0);
 }
 
-int	Commands::nick(User& user, const std::string buff, std::vector<User> &userList)
+int	Commands::nick(User* user, const std::string buff, std::vector<User*> &userList)
 {
 	if (buff.size() == 0)
 	{
-		std::string NONICKNAMEGIVEN = S_ERR_NONICKNAMEGIVEN + user.username + "NICK" +
+		std::string NONICKNAMEGIVEN = S_ERR_NONICKNAMEGIVEN + user->username + "NICK" +
 			" :No nickname given";
-		return (sendNumericReply(user, NONICKNAMEGIVEN));
+		return (sendNumericReply(*user, NONICKNAMEGIVEN));
 	}
 
 	const std::string forbidden = " ,*?!@";
@@ -74,49 +74,50 @@ int	Commands::nick(User& user, const std::string buff, std::vector<User> &userLi
 	{
 		std::string ERRONEUSNICKNAME(S_ERR_ERRONEUSNICKNAME);
 		ERRONEUSNICKNAME += ' ';
-		if (user.username.empty())
+		if (user->username.empty())
 			ERRONEUSNICKNAME += '*';
 		else
-			ERRONEUSNICKNAME += user.username;
+			ERRONEUSNICKNAME += user->username;
 		ERRONEUSNICKNAME +=  " " + buff.substr(1, buff.size() - 3) + " :Erroneus nickname";
-		return (sendNumericReply(user, ERRONEUSNICKNAME));
+		return (sendNumericReply(*user, ERRONEUSNICKNAME));
 	}
 	size_t endPos = buff.find("\r\n", 0);	//careful: not checking for std::string::npos!
 	std::string oldNickName;
-	for (std::vector<User>::iterator it = userList.begin(); it != userList.end(); it++)
+	for (std::vector<User*>::iterator it = userList.begin(); it != userList.end(); it++)
 	{
 		std::string tempBuff = buff.substr(1, endPos - 1);
-		if (it->nickname.empty() == true)
+		if ((*it)->nickname.empty() == true)
 			break ;
-		oldNickName = it->nickname;
+		oldNickName = (*it)->nickname;
 		std::string tempNickName = oldNickName;
 		for (size_t i = 0; i < tempBuff.size(); i++)
 			tempBuff[i] = toupper(tempBuff[i]);
 		for (size_t i = 0; i < oldNickName.size(); i++)
 			tempNickName[i] = toupper(oldNickName[i]);
+
 		if (tempBuff == tempNickName)// && tempNickName != user.nickname
 		{
 			std::string NICKNAMEINUSE(S_ERR_NICKNAMEINUSE);
 			NICKNAMEINUSE += ' ';
-			if (user.username.empty())
+			if (user->username.empty())
 				NICKNAMEINUSE += '*';
 			else
-				NICKNAMEINUSE += user.username;
+				NICKNAMEINUSE += user->username;
 			NICKNAMEINUSE += ' ';
 			NICKNAMEINUSE += oldNickName;
 			NICKNAMEINUSE += " :Nickname is already in use";
-			return (sendNumericReply(user, NICKNAMEINUSE));
+			return (sendNumericReply(*user, NICKNAMEINUSE));
 		}
 	}
-	if (user.nickname.empty())
+	if (user->nickname.empty())
 		oldNickName = '*';
 	else
-		oldNickName = user.nickname;
-	user.nickname = buff.substr(1, buff.size() - 3);
-	std::string nickreply(':' + oldNickName + " NICK " + user.nickname + "\r\n");
-	send(user.socket, nickreply.c_str(), nickreply.size(), 0);
+		oldNickName = user->nickname;
+	user->nickname = buff.substr(1, buff.size() - 3);
+	std::string nickreply(':' + oldNickName + " NICK " + user->nickname + "\r\n");
+	send(user->socket, nickreply.c_str(), nickreply.size(), 0);
 	if (this->userCommand.empty() == false)
-		Commands::user(user, this->userCommand);
+		Commands::user(*user, this->userCommand);
 	return (0);
 }
 
@@ -131,7 +132,7 @@ int	Commands::parseUserBuff(const std::string &buff) const
 	{
 		return (1);
 	}
-	
+
 	//Making sure there are exactly 4 spaces before :<realname>
 	for (int i = 0, spaceCount = 0; buff[i] && buff[i] != ':'; i++)
 	{
@@ -140,7 +141,7 @@ int	Commands::parseUserBuff(const std::string &buff) const
 		if (spaceCount > 4)
 			return (1);
 	}
-	
+
 	//Username MUST have a length of at least 1
 	for (int i = 1, count = 0; buff[count]; i++)
 	{
@@ -174,7 +175,7 @@ int	Commands::user(User& user, std::string buff)
 	if (buff.size() == 0)
 	{
 		std::string NONICKNAMEGIVEN('*' + " USER :Not enough parameters");
-		return (sendNumericReply(user, NONICKNAMEGIVEN));		
+		return (sendNumericReply(user, NONICKNAMEGIVEN));
 	}
 	for (size_t i = 1; i < buff.size(); i++)
 	{
@@ -233,22 +234,22 @@ int	joinParse(const std::string &buffer)
 				return (-1);
 		}
 	}
-	return (0);	
+	return (0);
 }
 
 int	Commands::joinLeaveAll(User& user, std::vector<Channel> &channelList) const
 {
 	for (std::vector<Channel>::iterator it = channelList.begin(); it != channelList.end(); it++)
 	{
-		std::vector<User> members = it->getChanMembers();
-		for (std::vector<User>::iterator subiter = members.begin(); subiter != members.end(); subiter++)
+		std::vector<User*> members = it->getChanMembers();
+		for (std::vector<User*>::iterator subiter = members.begin(); subiter != members.end(); subiter++)
 		{
-			if (user.nickname == subiter->nickname)
+			if (user.nickname == (*subiter)->nickname)
 			{
 				std::string res(":");
 				res += user.nickname + "!" + user.username + "@localhost PART " + it->getChanName() + " :Leaving\r\n";
-				send(subiter->socket, res.c_str(), res.size(), 0);
-				if (subiter->nickname == user.nickname)
+				send((*subiter)->socket, res.c_str(), res.size(), 0);
+				if ((*subiter)->nickname == user.nickname)
 					it->removeMember(*subiter);
 				for(std::vector<User *>::iterator opList = it->flags.operatorList.begin(); opList != it->flags.operatorList.end(); opList++)
 				{
@@ -321,10 +322,10 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 			//if there are other users, send JOIN to them
 			if (chan->getChanMembers().size() > 0)
 			{
-				std::vector<User> members = chan->getChanMembers();
+				std::vector<User*> members = chan->getChanMembers();
 				std::string joinRelayMessage(':' + user.nickname + '!' + user.username + '@' + "localhost " + "JOIN " + chan->getChanName() + "\r\n");
-				for (std::vector<User>::const_iterator subIter = members.begin(); subIter != members.end(); subIter++)
-					send(subIter->socket, joinRelayMessage.c_str(), joinRelayMessage.size(), 0);
+				for (std::vector<User*>::const_iterator subIter = members.begin(); subIter != members.end(); subIter++)
+					send((*subIter)->socket, joinRelayMessage.c_str(), joinRelayMessage.size(), 0);
 			}
 		}
 		else
@@ -348,13 +349,13 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 			}
 		}
 		//join the channel
-		chan->addMember(user);
+		chan->addMember(&user);
 	}
 	else
 	{
 		chan = &newChan;
 		chan->setChanName(buff);
-		chan->addMember(user);
+		chan->addMember(&user);
 		chan->flags.operatorList.push_back(&user);
 		channelList.push_back(*chan);
 	}
@@ -363,7 +364,7 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 	if (chan->getChanTopic().empty() == false)
 	{
 		std::string RPLTOPIC(S_RPL_TOPIC);
-		 
+
 		RPLTOPIC += ' ' + user.nickname + ' ' + chan->getChanName() + " :" + chan->getChanTopic();
 		sendNumericReply(user, RPLTOPIC);
 	}
@@ -374,16 +375,16 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 	NAMREPLY += chan->getChanName();
 	NAMREPLY += " :";
 
-	std::vector<User> members = chan->getChanMembers();
-	for (std::vector<User>::const_iterator it = members.begin(); it != members.end(); it++)
+	std::vector<User*> members = chan->getChanMembers();
+	for (std::vector<User*>::const_iterator it = members.begin(); it != members.end(); it++)
 	{
 		std::string name(NAMREPLY);
 		for (std::vector<User *>::const_iterator subiter = chan->flags.operatorList.begin(); subiter != chan->flags.operatorList.end(); subiter++)
 		{
-			if (it->nickname == (*subiter)->nickname)
+			if ((*it)->nickname == (*subiter)->nickname)
 				name += '@';
 		}
-		name += it->nickname;
+		name += (*it)->nickname;
 		if (it + 1 != members.end())
 			name += ' ';
 		sendNumericReply(user, name);
@@ -400,9 +401,9 @@ int Commands::part(User& user, const std::string &buffer, std::vector<Channel> &
 {
 	if (buffer.size() < 3 || buffer[0] != ' ') // || buffer[1] != '#'
 		return (-1);
-	
+
 	std::string buff = buffer.substr(1, buffer.size() - 3);
-	
+
 	int spaceCount = 0;
 	for (size_t i = 0; i < buffer.size(); i++)
 	{
@@ -446,10 +447,10 @@ int Commands::part(User& user, const std::string &buffer, std::vector<Channel> &
 		}
 	}
 
-	std::vector<User> usrList = chan->getChanMembers();
-	for (std::vector<User>::iterator it = usrList.begin(); it != usrList.end(); it++)
+	std::vector<User*> usrList = chan->getChanMembers();
+	for (std::vector<User*>::iterator it = usrList.begin(); it != usrList.end(); it++)
 	{
-		if (it->nickname == user.nickname)
+		if ((*it)->nickname == user.nickname)
 			break;
 		else if (it + 1 == usrList.end())
 		{
@@ -458,20 +459,20 @@ int Commands::part(User& user, const std::string &buffer, std::vector<Channel> &
 			return (sendNumericReply(user, NOTONCHAN));
 		}
 	}
-	
+
 	std::string res(":");
 	res += user.nickname + "!" + user.username + "@localhost PART " + chan->getChanName();
-	
+
 	std::string reason;
 	size_t spacePos;
 	spacePos = buff.find_last_of(' ');
 	reason = buff.substr(spacePos, buff.size());
 	if (reason != chan->getChanName())
 		res += reason + "\r\n";
-	for(std::vector<User>::iterator it = usrList.begin(); it != usrList.end(); it++)
+	for(std::vector<User*>::iterator it = usrList.begin(); it != usrList.end(); it++)
 	{
-		send(it->socket, res.c_str(), res.size(), 0);
-		if (it->nickname == user.nickname)
+		send((*it)->socket, res.c_str(), res.size(), 0);
+		if ((*it)->nickname == user.nickname)
 			chan->removeMember(*it);
 	}
 	for(std::vector<User *>::iterator it = chan->flags.operatorList.begin(); it != chan->flags.operatorList.end(); it++)
@@ -485,7 +486,7 @@ int Commands::part(User& user, const std::string &buffer, std::vector<Channel> &
 	return (0);
 }
 
-int Commands::quit(User& user, const std::string &buffer, std::vector<User> &userList, std::vector<struct pollfd> &pfdsArr)
+int Commands::quit(User& user, const std::string &buffer, std::vector<User*> &userList, std::vector<struct pollfd> &pfdsArr)
 {
 	if ((buffer[0] != ' ' && buffer[0] != '\0') && buffer.find(':') == std::string::npos)
 		return (-1);
@@ -493,8 +494,8 @@ int Commands::quit(User& user, const std::string &buffer, std::vector<User> &use
 	std::string quitMsg(':' + user.nickname + '!' + user.username + "@localhost QUIT" + buffer);
 	if (buffer[buffer.size() - 2] != '\r' && buffer[buffer.size() - 1] != '\n')
 		quitMsg += "\r\n";
-	for (std::vector<User>::iterator it = userList.begin(); it != userList.end(); it++)
-		send(it->socket, quitMsg.c_str(), quitMsg.size(), 0);
+	for (std::vector<User*>::iterator it = userList.begin(); it != userList.end(); it++)
+		send((*it)->socket, quitMsg.c_str(), quitMsg.size(), 0);
 	for (std::vector<struct pollfd>::iterator it = pfdsArr.begin(); it != pfdsArr.end(); it++)
 	{
 		if (it->fd == user.socket)
@@ -503,9 +504,9 @@ int Commands::quit(User& user, const std::string &buffer, std::vector<User> &use
 			break ;
 		}
 	}
-	for (std::vector<User>::iterator it = userList.begin(); it != userList.end(); it++)
+	for (std::vector<User*>::iterator it = userList.begin(); it != userList.end(); it++)
 	{
-		if (it->nickname == user.nickname)
+		if ((*it)->nickname == user.nickname)
 		{
 			userList.erase(it);
 			break ;
@@ -514,24 +515,24 @@ int Commands::quit(User& user, const std::string &buffer, std::vector<User> &use
 	return (0);
 }
 
-int	Commands::privmsgUser(User& user, const std::string &buffer, const std::string& target, const std::vector<User> &userList) const
+int	Commands::privmsgUser(User& user, const std::string &buffer, const std::string& target, const std::vector<User*> &userList) const
 {
 	size_t messagePos = buffer.find(":", 0);
 	if (messagePos == std::string::npos)
 		return (-1);
 	const std::string message(buffer.substr(messagePos));
 
-	for (std::vector<User>::const_iterator it = userList.begin(); it != userList.end(); it++)
+	for (std::vector<User*>::const_iterator it = userList.begin(); it != userList.end(); it++)
 	{
-		if (it + 1 == userList.end() && target != it->nickname)
+		if (it + 1 == userList.end() && target != (*it)->nickname)
 		{
 			std::string NOSUCHNICK(S_ERR_NOSUCHNICK + ' ' + target + ' ' + user.nickname + " :No such nick/channel");
 			return (sendNumericReply(user, NOSUCHNICK));
 		}
-		if (target == it->nickname)
+		if (target == (*it)->nickname)
 		{
 			std::string fullMsg(':' + user.nickname + '!' + user.username + "@localhost " + "PRIVMSG" + buffer);
-			return (send(it->socket, fullMsg.c_str(), fullMsg.size(), 0));
+			return (send((*it)->socket, fullMsg.c_str(), fullMsg.size(), 0));
 		}
 	}
 	return (0);
@@ -543,20 +544,20 @@ int	Commands::privmsgChannel(User& user, const std::string &buffer, const std::s
 	{
 		if (target == it->getChanName())
 		{
-			std::vector<User> chanMembers = it->getChanMembers();
+			std::vector<User*> chanMembers = it->getChanMembers();
 			//Full client identifier + PRIVMSG + #channel + :message
 			std::string fullMsg(':' + user.nickname + '!' + user.username + "@localhost " + "PRIVMSG" + buffer);
-			for (std::vector<User>::iterator subiter = chanMembers.begin(); subiter != chanMembers.end(); subiter++)
+			for (std::vector<User*>::iterator subiter = chanMembers.begin(); subiter != chanMembers.end(); subiter++)
 			{
-				if (subiter->nickname == user.nickname)
+				if ((*subiter)->nickname == user.nickname)
 					break ;
 				if (subiter + 1 == chanMembers.end())
 					return (-1);
 			}
-			for (std::vector<User>::iterator subiter = chanMembers.begin(); subiter != chanMembers.end(); subiter++)
+			for (std::vector<User*>::iterator subiter = chanMembers.begin(); subiter != chanMembers.end(); subiter++)
 			{
-				if (subiter->nickname != user.nickname)
-					send(subiter->socket, fullMsg.c_str(), fullMsg.size(), 0);
+				if ((*subiter)->nickname != user.nickname)
+					send((*subiter)->socket, fullMsg.c_str(), fullMsg.size(), 0);
 			}
 			return (0);
 		}
@@ -566,7 +567,7 @@ int	Commands::privmsgChannel(User& user, const std::string &buffer, const std::s
 
 
 /*:<source> PRIVMSG <target> :<message>*/
-int		Commands::privmsg(User& user, const std::string &buffer, const std::vector<Channel> &channelList, const std::vector<User> &userList) const
+int		Commands::privmsg(User& user, const std::string &buffer, const std::vector<Channel> &channelList, const std::vector<User*> &userList) const
 {
 	//check if target is a user, or if it's a channel
 		//if neither, error NOSUCHNICK i think

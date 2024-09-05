@@ -65,21 +65,21 @@ LastTopic	Channel::getLastTopic()
 	return (this->_lastTopic);
 }
 
-std::vector<User>	Channel::getChanMembers() const
+std::vector<User*>	Channel::getChanMembers() const
 {
 	return (this->_chanMembers);
 }
 
-void	Channel::addMember(User &user)
+void	Channel::addMember(User* user)
 {
 	_chanMembers.push_back(user);
 }
 
-void	Channel::removeMember(User &user)
+void	Channel::removeMember(User* user)
 {
-	for (std::vector<User>::iterator it = _chanMembers.begin(); it != _chanMembers.end(); it++)
+	for (std::vector<User*>::iterator it = _chanMembers.begin(); it != _chanMembers.end(); it++)
 	{
-		if ((*it).nickname == user.nickname)
+		if ((*it)->nickname == user->nickname)
 		{
 			_chanMembers.erase(it);
 			return ;

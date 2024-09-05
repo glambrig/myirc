@@ -48,10 +48,10 @@ int	Commands::topic(const User& user, const std::string& buff, std::vector<Chann
 	if (chan == NULL || chan->getChanName().empty())
 		return (-1);
 	bool userInChannel = false;
-	std::vector<User> members = chan->getChanMembers();
-	for (std::vector<User>::iterator it = members.begin(); it != members.end(); it++)
+	std::vector<User*> members = chan->getChanMembers();
+	for (std::vector<User*>::iterator it = members.begin(); it != members.end(); it++)
 	{
-		if (user.nickname == it->nickname)
+		if (user.nickname == (*it)->nickname)
 		{
 			userInChannel = true;
 			break ;
@@ -113,10 +113,10 @@ int	Commands::topic(const User& user, const std::string& buff, std::vector<Chann
 			chan->setLastTopic(user.nickname);
 			members.clear();
 			members = chan->getChanMembers();
-			for (std::vector<User>::const_iterator it = members.begin(); it != members.end(); it++)
+			for (std::vector<User*>::const_iterator it = members.begin(); it != members.end(); it++)
 			{
 				std::string TOPIC(':' + user.nickname + " TOPIC " + chan->getChanName() + ' ' + newTopic + "\r\n");
-				send(it->socket, TOPIC.c_str(), TOPIC.size(), 0);
+				send((*it)->socket, TOPIC.c_str(), TOPIC.size(), 0);
 			}
 		}
 	}
@@ -157,7 +157,7 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 	std::string buff(buffer.substr(0, buffer.size() - 2));
 	if (buff.size() < 3 || buff[0] != ' ' || buff[1] != '#')
 		return (-1);
-	
+
 	Channel *chan;
 
 	for (std::vector<Channel>::iterator it = channelList.begin(); it != channelList.end(); it++)
@@ -168,7 +168,7 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 			chanName = buff.substr(1, spacePos - 1);
 		else
 			chanName = buff.substr(1, spacePos);
-		
+
 		if (it->getChanName() == chanName)
 		{
 			Channel& temp = *it;
@@ -179,7 +179,7 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 			return (-1);
 	}
 	std::string modes(buff.substr(buff.find(' ', 1) + 1));	//everything after "MODE #channel "
-	
+
 	if (modes.empty() || modes == buff)	//' ' wasn't found in buff
 		return (sendNumericReply(user, emptyModeCommand(user, chan)));
 	//check if user is op
@@ -227,7 +227,7 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 				break ;
 			}
 		}
-		
+
 		std::string params(modes);
 		params = params.substr(params.find(' ') + 1);
 		switch (modes[i])
@@ -286,13 +286,13 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 					asdf = params.substr(0, pos);
 				else
 					asdf = params;
-				
+
 				std::cout << "operatorList.size() = " << chan->flags.operatorList.size() << std::endl;
 
-				std::vector<User> members = chan->getChanMembers();
-				for (std::vector<User>::iterator it = members.begin(); it !=  members.end(); it++)
+				std::vector<User*> members = chan->getChanMembers();
+				for (std::vector<User*>::iterator it = members.begin(); it !=  members.end(); it++)
 				{
-					if (it->nickname == asdf)
+					if ((*it)->nickname == asdf)
 					{
 						if (plus)
 						{
@@ -307,7 +307,7 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 							}
 							if (targetIsOp == true)	//If target is already OP, don't push onto operatorList
 								break ;
-							chan->flags.operatorList.push_back(&(*it));
+							chan->flags.operatorList.push_back(*it);
 						}
 						else
 						{
@@ -326,7 +326,7 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 					if (it + 1 == members.end())
 					{
 						std::string NOSUCHNICK(S_ERR_NOSUCHNICK);
-						NOSUCHNICK += " " + user.nickname + " " + it->nickname + " :No such nick";
+						NOSUCHNICK += " " + user.nickname + " " + (*it)->nickname + " :No such nick";
 						return (sendNumericReply(user, NOSUCHNICK));
 					}
 				}
@@ -359,9 +359,9 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 		}
 	}
 	std::string reply(":" + user.nickname + " MODE" + buffer);
-	std::vector<User> members = chan->getChanMembers();
-	for (std::vector<User>::const_iterator it = members.begin(); it != members.end(); it++)
-		send(it->socket, reply.c_str(), reply.size(), 0);
+	std::vector<User*> members = chan->getChanMembers();
+	for (std::vector<User*>::const_iterator it = members.begin(); it != members.end(); it++)
+		send((*it)->socket, reply.c_str(), reply.size(), 0);
 	return (0);
 }
 
@@ -390,7 +390,7 @@ int	Commands::kick(const User& user, std::vector<Channel>& channelList, const st
 {
 	if (buffer.size() - 2 < 5 || buffer[0] != ' ' || buffer.find('#') == std::string::npos || buffer.find("\r\n") == std::string::npos)
 		return (-1);
-	
+
 	std::string buff = buffer.substr(0, buffer.size() - 2);
 
 	int spaceCount = 0;
@@ -436,7 +436,7 @@ int	Commands::kick(const User& user, std::vector<Channel>& channelList, const st
 		}
 	}
 
-	std::vector<User> memberList = chan->_chanMembers;
+	std::vector<User*> memberList = chan->_chanMembers;
 	// std::vector<User> memberList = chan->getChanMembers();
 	std::string temp(buff.substr(1, buff.size() - 1));
 	std::string targetUserStr(temp.substr(temp.find(' ', 0) + 1));
@@ -452,14 +452,14 @@ int	Commands::kick(const User& user, std::vector<Channel>& channelList, const st
 		NOSUCHNICK += " " + user.nickname + " " + targetUserStr + " :No such nick";
 		return (sendNumericReply(user, NOSUCHNICK));
 	}
-	for (std::vector<User>::iterator it = memberList.begin(); it != memberList.end(); it++)
+	for (std::vector<User*>::iterator it = memberList.begin(); it != memberList.end(); it++)
 	{
-		if (targetUserStr == it->nickname)
+		if (targetUserStr == (*it)->nickname)
 		{
 			//if user isn't on chan, error
-			for (std::vector<User>::iterator subiter = memberList.begin(); subiter != memberList.end(); subiter++)
+			for (std::vector<User*>::iterator subiter = memberList.begin(); subiter != memberList.end(); subiter++)
 			{
-				if (user.nickname == subiter->nickname)
+				if (user.nickname == (*subiter)->nickname)
 					break ;
 				else if (subiter + 1 == memberList.end())
 				{
@@ -470,11 +470,11 @@ int	Commands::kick(const User& user, std::vector<Channel>& channelList, const st
 			}
 			if (checkOpPrivs(user, chan) == false)
 				return (-1);
-			for (std::vector<User>::iterator replyiter = memberList.begin(); replyiter != memberList.end(); replyiter++)
+			for (std::vector<User*>::iterator replyiter = memberList.begin(); replyiter != memberList.end(); replyiter++)
 			{
 				std::string reply(":");
 				reply += user.nickname + "!" + user.username + "@localhost KICK" + buff + "\r\n";
-				send(replyiter->socket, reply.c_str(), reply.size(), 0);
+				send((*replyiter)->socket, reply.c_str(), reply.size(), 0);
 			}
 			// chan->_chanMembers.erase(it);
 			chan->removeMember(*it);
@@ -496,7 +496,7 @@ int inviteParsing(const std::string buffer, std::string &targetUser)
 		return (-1);
 
 	std::string buff = buffer.substr(0, buffer.size() - 2);
-	
+
 	int spaceCount = 0;
 	for (size_t i = 0; i < buff.size(); i++)
 	{
@@ -510,7 +510,7 @@ int inviteParsing(const std::string buffer, std::string &targetUser)
 }
 
 /*Syntax: INVITE <nickname> <channel>*/
-int	Commands::invite(const User& user, const std::string buffer, std::vector<Channel> &channelList, std::vector<User> &userList) const
+int	Commands::invite(const User& user, const std::string buffer, std::vector<Channel> &channelList, std::vector<User*> &userList) const
 {
 	std::string targetUser;
 	Channel *chan;
@@ -547,10 +547,10 @@ int	Commands::invite(const User& user, const std::string buffer, std::vector<Cha
 		}
 	}
 	//Only members of the channel are allowed to invite other users
-	std::vector<User> members = chan->getChanMembers();
-	for (std::vector<User>::iterator it = members.begin(); it != members.end(); it++)
+	std::vector<User*> members = chan->getChanMembers();
+	for (std::vector<User*>::iterator it = members.begin(); it != members.end(); it++)
 	{
-		if (user.nickname == it->nickname)
+		if (user.nickname == (*it)->nickname)
 			break ;
 		else if (it + 1 == members.end())
 		{
@@ -577,9 +577,9 @@ int	Commands::invite(const User& user, const std::string buffer, std::vector<Cha
 		}
 	}
 	//If the user is already on the target channel, the server MUST reject the command with the ERR_USERONCHANNEL numeric.
-	for (std::vector<User>::const_iterator it = members.begin(); it != members.end(); it++)
+	for (std::vector<User*>::const_iterator it = members.begin(); it != members.end(); it++)
 	{
-		if (it->nickname == targetUser)
+		if ((*it)->nickname == targetUser)
 		{
 			//<client> <nick> <channel> :is already on channel
 			std::string USERONCHANNEL(S_ERR_USERONCHANNEL);
@@ -593,16 +593,16 @@ int	Commands::invite(const User& user, const std::string buffer, std::vector<Cha
 	User *invitedUser;
 
 	INVITING += " " + user.nickname + " " + targetUser + " " + chan->getChanName();
-	inviteReply += user.nickname + " INVITE " + targetUser + " " + chan->getChanName() + "\r\n"; 
+	inviteReply += user.nickname + " INVITE " + targetUser + " " + chan->getChanName() + "\r\n";
 	sendNumericReply(user, INVITING);
-	for (std::vector<User>::iterator it = userList.begin(); it != userList.end(); it++)
+	for (std::vector<User*>::iterator it = userList.begin(); it != userList.end(); it++)
 	{
-		if (it->nickname == targetUser)
+		if ((*it)->nickname == targetUser)
 		{
-			User &temp = *it;
-			invitedUser = &temp;
+			User* temp = *it;
+			invitedUser = temp;
 			chan->flags.invitedUsers.push_back(invitedUser);
-			return (send(it->socket, inviteReply.c_str(), inviteReply.size(), 0));
+			return (send((*it)->socket, inviteReply.c_str(), inviteReply.size(), 0));
 		}
 		else if (it + 1 == userList.end())
 		{

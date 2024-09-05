@@ -37,7 +37,7 @@ Server::~Server()
 	// delete[] pfdsArr;
 }
 
-std::vector<User>	Server::getUsersFromServ()
+std::vector<User*>	Server::getUsersFromServ()
 {
 	return (_users);
 }
@@ -64,12 +64,12 @@ void	Server::parseArgs(int ac, char **av)
 
 void	Server::clearClient(int fd)
 {
-	for (std::vector<User>::iterator it = this->_users.begin(); it != this->_users.end(); it++)
+	for (std::vector<User*>::iterator it = this->_users.begin(); it != this->_users.end(); it++)
 	{
-		if (it->socket == fd)
+		if ((*it)->socket == fd)
 		{
 			std::string leavingMsg(" :Leaving");
-			Commands::quit(*it, leavingMsg, this->_users, this->pfdsArr);
+			Commands::quit(**it, leavingMsg, this->_users, this->pfdsArr);
 			for (std::vector<std::pair<int, std::string> >::iterator subiter = receivedCmds.begin(); subiter != receivedCmds.end(); subiter++)
 			{
 				if (subiter->first == fd)
@@ -114,7 +114,7 @@ void	Server::socketSetup(int &listenfd, struct sockaddr_in &servAddr)
 
 int Server::parseIncomingMessage(const std::string buff, const int i)
 {
-	User& 			user = _users[i];
+	User* 			user = _users[i];
 	static Commands	commands;
 	std::string		substr4 = buff.substr(0, 4);
 
@@ -122,36 +122,36 @@ int Server::parseIncomingMessage(const std::string buff, const int i)
 		return (-1);
 	if (substr4 == "PASS")
 	{
-		if (commands.pass(user, buff.substr(4, buff.size() - 4), this->sPassword) != -1)
-			user.enteredPass = true;
+		if (commands.pass(*user, buff.substr(4, buff.size() - 4), this->sPassword) != -1)
+			user->enteredPass = true;
 		return (0);
 	}
-	if (user.enteredPass == false)
+	if (!user->enteredPass)
 	{
 		std::string error(":localhost * ERROR :No password provided\r\n");
-		send(user.socket, error.c_str(), error.size(), 0);
+		send(user->socket, error.c_str(), error.size(), 0);
 		return (-1);
 	}
 	if (substr4 == "NICK")
 		return (commands.nick(user, buff.substr(4, buff.size() - 4), this->_users));
 	if (substr4 == "USER")
-		return (commands.user(user, buff.substr(4, buff.size() - 4)));
+		return (commands.user(*user, buff.substr(4, buff.size() - 4)));
 	if (substr4 == "JOIN")
-		return (commands.join(user, buff.substr(4, buff.size() - 4), this->_channels));
+		return (commands.join(*user, buff.substr(4, buff.size() - 4), this->_channels));
 	if (substr4 == "MODE")
-		return (commands.mode(user, buff.substr(4, buff.size() - 4), this->_channels));
+		return (commands.mode(*user, buff.substr(4, buff.size() - 4), this->_channels));
 	if (substr4 == "KICK")
-		return (commands.kick(user, this->_channels, buff.substr(4, buff.size() - 4)));
+		return (commands.kick(*user, this->_channels, buff.substr(4, buff.size() - 4)));
 	if (substr4 == "PART")
-		return (commands.part(user, buff.substr(4, buff.size() - 4), this->_channels));
+		return (commands.part(*user, buff.substr(4, buff.size() - 4), this->_channels));
 	if (substr4 == "QUIT")
-		return (commands.quit(user, buff.substr(4, buff.size() - 4), this->_users, this->pfdsArr));
+		return (commands.quit(*user, buff.substr(4, buff.size() - 4), this->_users, this->pfdsArr));
 	if (buff.substr(0, 5) == "TOPIC")
-		return (commands.topic(user, buff.substr(5, buff.size() - 5), this->_channels));
+		return (commands.topic(*user, buff.substr(5, buff.size() - 5), this->_channels));
 	if (buff.substr(0, 6) == "INVITE")
-		return (commands.invite(user, buff.substr(6, buff.size() - 6), this->_channels, this->_users));
+		return (commands.invite(*user, buff.substr(6, buff.size() - 6), this->_channels, this->_users));
 	if (buff.substr(0, 7) == "PRIVMSG")
-		return (commands.privmsg(user, buff.substr(7, buff.size() - 7), this->_channels, this->_users));
+		return (commands.privmsg(*user, buff.substr(7, buff.size() - 7), this->_channels, this->_users));
 	return (-1);
 }
 
@@ -204,7 +204,7 @@ void	Server::handlePollIn(size_t pfdsArrLen, size_t i, int listenfd)
 			pfdsArr.push_back(temp);
 			User	newUsr;
 			newUsr.socket = temp.fd;
-			_users.push_back(newUsr);
+			_users.push_back(new User(newUsr));
 		}
 		else
 		{
@@ -269,7 +269,7 @@ void	Server::handlePollIn(size_t pfdsArrLen, size_t i, int listenfd)
 					break ;
 				}
 			}
-			
+
 			std::cout << "Server received message: " << strBuff << std::endl;////////
 
 			std::vector<std::string> splitBuff = splitRecvRes(strBuff);
@@ -323,8 +323,8 @@ void	Server::run()
 				pfdsArrLen = pfdsArr.size();
 			}
 		}
-		for (std::vector<User>::iterator it = this->_users.begin(); it != this->_users.end(); it++)
-			clearClient(it->socket);
+		for (std::vector<User*>::iterator it = this->_users.begin(); it != this->_users.end(); it++)
+			clearClient((*it)->socket);
 	}
 	catch (const char *e)
 	{

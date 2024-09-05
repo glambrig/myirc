@@ -24,7 +24,7 @@ class Server
 {
 private:
 	std::vector<Channel>	_channels;
-	std::vector<User>		_users;
+	std::vector<User*>		_users;
 	size_t					_port;
 	std::string				sPort;
 	std::string				sPassword;
@@ -39,7 +39,7 @@ public:
 	~Server();
 	static bool					_signal;
 
-	std::vector<User>	getUsersFromServ();
+	std::vector<User*>	getUsersFromServ();
 
 	void	parseArgs(int ac, char **av);
 	void	socketSetup(int &listenfd, struct sockaddr_in &servAddr);
