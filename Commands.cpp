@@ -213,35 +213,6 @@ int	Commands::user(User& user, std::string buff)
 	return (0);
 }
 
-// int	Commands::who(const std::string buff, const std::vector<User> userList, const std::vector<Channel> channelList) const
-// {
-// 	bool isUser = false;
-// 	bool isChannel = false;
-
-// 	if (buff.empty() || buff.size() < 3)
-// 		return (-1);
-// 	if (buff[1] == '#')
-// 		isChannel = true;
-// 	std::string sub(buff.substr(1, buff.size() - 1));
-// 	if (isChannel == true)
-// 	{
-// 		for (std::vector<Channel>::const_iterator it = channelList.begin(); it != channelList.end(); it++)
-// 		{
-// 			if (it->getChanName() == sub)
-// 			{
-// 				for (std::vector<User>::const_iterator subiter = userList.begin(); subiter != userList.end(); subiter++)
-// 				{
-
-// 				}
-// 			}
-// 		}
-// 	}
-// 	for (std::vector<User>::const_iterator it = userList.begin(); it != userList.end(); it++)
-// 	{
-// 		if (it->nickname == sub)
-// 	}
-// }
-
 /*
 	Checks for leading # in front of channel name, and makes sure there are no spaces
 	Remember that we have to subtract 2 from substr each time when there's a \r\n sequence

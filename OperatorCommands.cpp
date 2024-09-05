@@ -436,7 +436,8 @@ int	Commands::kick(const User& user, std::vector<Channel>& channelList, const st
 		}
 	}
 
-	std::vector<User> memberList = chan->getChanMembers();
+	std::vector<User> memberList = chan->_chanMembers;
+	// std::vector<User> memberList = chan->getChanMembers();
 	std::string temp(buff.substr(1, buff.size() - 1));
 	std::string targetUserStr(temp.substr(temp.find(' ', 0) + 1));
 	//if there's a comment/reason afterwards, trim targetUserStr
@@ -475,7 +476,8 @@ int	Commands::kick(const User& user, std::vector<Channel>& channelList, const st
 				reply += user.nickname + "!" + user.username + "@localhost KICK" + buff + "\r\n";
 				send(replyiter->socket, reply.c_str(), reply.size(), 0);
 			}
-			chan->_chanMembers.erase(it);
+			// chan->_chanMembers.erase(it);
+			chan->removeMember(*it);
 			return (0);
 		}
 		else if (it + 1 == memberList.end())
