@@ -115,7 +115,8 @@ int	Commands::nick(User* user, const std::string buff, std::vector<User*> &userL
 		oldNickName = user->nickname;
 	user->nickname = buff.substr(1, buff.size() - 3);
 	std::string nickreply(':' + oldNickName + " NICK " + user->nickname + "\r\n");
-	send(user->socket, nickreply.c_str(), nickreply.size(), 0);
+	for (std::vector<User*>::iterator it = userList.begin(); it != userList.end(); it++)
+		send((*it)->socket, nickreply.c_str(), nickreply.size(), 0);
 	if (this->userCommand.empty() == false)
 		Commands::user(*user, this->userCommand);
 	return (0);

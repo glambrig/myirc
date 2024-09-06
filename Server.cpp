@@ -214,7 +214,7 @@ void	Server::handlePollIn(size_t pfdsArrLen, size_t i, int listenfd)
 	}
 	else
 	{
-		int recvRes = recv(pfdsArr[i].fd, &buff, 512, 0);
+		int recvRes = recv(pfdsArr[i].fd, &buff, 512, MSG_DONTWAIT);
 		if (recvRes <= 0)
 		{
 			if (recvRes == 0)
@@ -223,7 +223,8 @@ void	Server::handlePollIn(size_t pfdsArrLen, size_t i, int listenfd)
 				std::cout << "Client disconnected" << std::endl;
 			}
 			else if (recvRes < 0)
-				throw ("Error receiving from fd");
+				return ;
+				// throw ("Error receiving from fd");
 		}
 		else
 		{
