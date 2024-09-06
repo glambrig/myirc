@@ -34,7 +34,10 @@ Server& Server::operator=(const Server& rhs)
 
 Server::~Server()
 {
-	// delete[] pfdsArr;
+	for (std::vector<User *>::iterator it = this->_users.begin(); it != this->_users.end(); it++)
+	{
+		delete *it;
+	}
 }
 
 std::vector<User*>	Server::getUsersFromServ()
