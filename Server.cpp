@@ -183,7 +183,6 @@ std::vector<std::string>	splitRecvRes(std::string buff)
 	}
 	return (res);
 }
-
 void	Server::handlePollIn(size_t pfdsArrLen, size_t i, int listenfd)
 {
 	char	buff[512];
