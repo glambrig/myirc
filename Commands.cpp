@@ -118,7 +118,10 @@ int	Commands::nick(User* user, const std::string buff, std::vector<User*> &userL
 	for (std::vector<User*>::iterator it = userList.begin(); it != userList.end(); it++)
 		send((*it)->socket, nickreply.c_str(), nickreply.size(), 0);
 	if (this->userCommand.empty() == false)
+	{
 		Commands::user(*user, this->userCommand);
+		user->hasRegistered = true;
+	}
 	return (0);
 }
 
@@ -212,6 +215,8 @@ int	Commands::user(User& user, std::string buff)
 	sendNumericReply(user, yourHost);
 	sendNumericReply(user, created);
 	this->userCommand.clear();
+	if (!user.nickname.empty())
+		user.hasRegistered = true;
 	return (0);
 }
 
@@ -488,6 +493,18 @@ int Commands::part(User& user, const std::string &buffer, std::vector<Channel> &
 			chan->flags.operatorList.erase(it);
 			break ;
 		}
+	}
+	//If everyone leaves, clear all flags
+	if (chan->getChanMembers().size() == 0)
+	{
+		chan->flags.invitedUsers.clear();
+		chan->flags.inviteOnly = false;
+		chan->flags.operatorList.clear();
+		chan->flags.pswdIsSet.first = false;
+		chan->flags.pswdIsSet.second.clear();
+		chan->flags.topicOpOnly = false;
+		chan->flags.userLimit.first = false;
+		chan->flags.userLimit.second = 16;
 	}
 	return (0);
 }

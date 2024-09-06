@@ -37,7 +37,7 @@ public:
 	Server(int ac, char **av);
 	Server& operator=(const Server& rhs);
 	~Server();
-	static bool					_signal;
+	static bool					_signal; //If false, server keeps running. Otherwise, server shuts down.
 
 	std::vector<User*>	getUsersFromServ();
 

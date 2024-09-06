@@ -139,6 +139,8 @@ int Server::parseIncomingMessage(const std::string buff, const int i)
 		return (commands.nick(user, buff.substr(4, buff.size() - 4), this->_users));
 	if (substr4 == "USER")
 		return (commands.user(*user, buff.substr(4, buff.size() - 4)));
+	if (!user->hasRegistered)
+			return (-1);
 	if (substr4 == "JOIN")
 		return (commands.join(*user, buff.substr(4, buff.size() - 4), this->_channels));
 	if (substr4 == "MODE")
@@ -314,7 +316,7 @@ void	Server::run()
 			int pollreturn = poll(&pfdsArr[0], pfdsArrLen, 50);
 			if (pollreturn < 0)
 			{
-				if (Server::_signal == false)
+				if (Server::_signal == true)
 					return ;
 				throw ("Poll returned negative value");
 			}
