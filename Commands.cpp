@@ -132,18 +132,17 @@ int	Commands::nick(User* user, const std::string buff, std::vector<User*> &userL
 */
 int	Commands::parseUserBuff(const std::string &buff) const
 {
-	if (buff[0] != ' ')
-	{
-		return (1);
-	}
+	if (buff[0] != ' ' || buff.find(':', 0) == std::string::npos)
+		return (-1);
 
 	//Making sure there are exactly 4 spaces before :<realname>
 	for (int i = 0, spaceCount = 0; buff[i] && buff[i] != ':'; i++)
 	{
-		if (buff[i] == ' ')// && buff[i - 1] != ' '
+		size_t pos = buff.find_first_not_of(' ', i);
+		if (buff[i] == ' ' && (pos != std::string::npos && buff[pos] != '\0'))
 			spaceCount++;
-		if (spaceCount > 4)
-			return (1);
+		if (buff.begin() + i == buff.end() && spaceCount != 4)
+			return (-1);
 	}
 
 	//Username MUST have a length of at least 1
@@ -152,7 +151,7 @@ int	Commands::parseUserBuff(const std::string &buff) const
 		while (buff[i + count] && buff[i + count] != ' ')
 			count++;
 		if (count < 1)
-			return (1);
+			return (-1);
 		else
 			return (0);
 	}
@@ -166,7 +165,7 @@ int	Commands::user(User& user, std::string buff)
 		userCommand = buff;
 		return (0);
 	}
-	if (parseUserBuff(buff) == 1)
+	if (parseUserBuff(buff) < 0 || buff.size() == 0)
 	{
 		std::string NEEDMOREPARAMS = "* :Not enough parameters";
 		return (sendNumericReply(user, NEEDMOREPARAMS));
@@ -175,11 +174,6 @@ int	Commands::user(User& user, std::string buff)
 	{
 		std::string ALREADYREGISTERED(S_ERR_ALREADYREGISTERED + ' ' + user.username + " USER : You may not reregister");
 		return (sendNumericReply(user, ALREADYREGISTERED));
-	}
-	if (buff.size() == 0)
-	{
-		std::string NONICKNAMEGIVEN('*' + " USER :Not enough parameters");
-		return (sendNumericReply(user, NONICKNAMEGIVEN));
 	}
 	for (size_t i = 1; i < buff.size(); i++)
 	{
