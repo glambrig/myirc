@@ -44,6 +44,8 @@ int		Commands::pass(User& user, const std::string& buffer, const std::string& pa
 {
 	std::string buff(buffer.substr(1, buffer.size() - 3));
 
+	if (buff.find("CAP LS") != std::string::npos)	//Silly. Ignores CAP LS message from hexchat
+		return (0);
 	if (buff != password)
 	{
 		std::string PASSMISMATCH(S_ERR_PASSWDMISMATCH);
@@ -116,7 +118,10 @@ int	Commands::nick(User* user, const std::string buff, std::vector<User*> &userL
 	user->nickname = buff.substr(1, buff.size() - 3);
 	std::string nickreply(':' + oldNickName + " NICK " + user->nickname + "\r\n");
 	for (std::vector<User*>::iterator it = userList.begin(); it != userList.end(); it++)
-		send((*it)->socket, nickreply.c_str(), nickreply.size(), 0);
+	{
+		if ((*it)->hasRegistered == true)
+			send((*it)->socket, nickreply.c_str(), nickreply.size(), 0);
+	}
 	if (this->userCommand.empty() == false)
 	{
 		Commands::user(*user, this->userCommand);
@@ -220,9 +225,10 @@ int	Commands::user(User& user, std::string buff)
 */
 int	joinParse(const std::string &buffer)
 {
-	if (buffer.empty() == true || buffer[0] != ' ' || buffer[1] != '#')
-		return (-1);
 	std::string buff = buffer.substr(2, buffer.size() - 4);
+
+	if (buffer.empty() == true || buffer[0] != ' ' || buffer[1] != '#' || (buffer.size() - 2) < 3)
+		return (-1);
 	int spaceCount = 0;
 	for (size_t i = 0; i < buff.size(); i++)
 	{
@@ -230,7 +236,7 @@ int	joinParse(const std::string &buffer)
 		{
 			if (buff[i] == ' ')
 				spaceCount++;
-			if (spaceCount > 1)
+			if (spaceCount > 1 || buff[i] != ' ')
 				return (-1);
 		}
 	}
@@ -412,7 +418,7 @@ int Commands::part(User& user, const std::string &buffer, std::vector<Channel> &
 	int spaceCount = 0;
 	for (size_t i = 0; i < buffer.size(); i++)
 	{
-		if (buffer[i] == ' ' && buffer[i - 1] != ' ')
+		if (buffer[i] == ' ' && buffer[i + 1] != ' ')
 			spaceCount++;
 	}
 	if (spaceCount < 2)
@@ -525,6 +531,7 @@ int Commands::quit(User& user, const std::string &buffer, std::vector<User*> &us
 	{
 		if ((*it)->nickname == user.nickname)
 		{
+			delete *it;
 			userList.erase(it);
 			break ;
 		}
@@ -546,7 +553,7 @@ int	Commands::privmsgUser(User& user, const std::string &buffer, const std::stri
 			std::string NOSUCHNICK(S_ERR_NOSUCHNICK + ' ' + target + ' ' + user.nickname + " :No such nick/channel");
 			return (sendNumericReply(user, NOSUCHNICK));
 		}
-		if (target == (*it)->nickname)
+		if (target == (*it)->nickname && target != user.nickname)
 		{
 			std::string fullMsg(':' + user.nickname + '!' + user.username + "@localhost " + "PRIVMSG" + buffer);
 			return (send((*it)->socket, fullMsg.c_str(), fullMsg.size(), 0));
