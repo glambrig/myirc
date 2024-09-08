@@ -329,17 +329,8 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 			if (user.nickname == (*it)->nickname)
 				return (0);
 		}
-		if (chan->flags.inviteOnly == false)
-		{
-			//if there are other users, send JOIN to them
-			if (chan->getChanMembers().size() > 0)
-			{
-				std::string joinRelayMessage(':' + user.nickname + '!' + user.username + '@' + "localhost " + "JOIN " + chan->getChanName() + "\r\n");
-				for (std::vector<User*>::const_iterator subIter = members.begin(); subIter != members.end(); subIter++)
-					send((*subIter)->socket, joinRelayMessage.c_str(), joinRelayMessage.size(), 0);
-			}
-		}
-		else
+		//EDIT STARTS HERE
+		if (chan->flags.inviteOnly == true)
 		{
 			std::vector<User *> &invitedUsers = chan->flags.invitedUsers;
 			bool invited = false;
@@ -358,6 +349,13 @@ int	Commands::join(User& user, const std::string buffer, std::vector<Channel> &c
 				INVITEONLY += " " + user.nickname + " " + chan->getChanName() + " :Cannot join channel (+i)";
 				return (sendNumericReply(user, INVITEONLY));
 			}
+		}
+		//if there are other users, send JOIN to them
+		if (chan->getChanMembers().size() > 0)
+		{
+			std::string joinRelayMessage(':' + user.nickname + '!' + user.username + '@' + "localhost " + "JOIN " + chan->getChanName() + "\r\n");
+			for (std::vector<User*>::const_iterator subIter = members.begin(); subIter != members.end(); subIter++)
+				send((*subIter)->socket, joinRelayMessage.c_str(), joinRelayMessage.size(), 0);
 		}
 		//join the channel
 		chan->addMember(&user);

@@ -151,6 +151,22 @@ std::string	emptyModeCommand(const User& user, const Channel *chan)
 	return (MODEIS);
 }
 
+void removeModesDupes(std::string &modes)
+{
+	std::string asdf;
+
+	for (size_t i = 0; modes[i] && modes[i] != ' ';)
+	{
+		if (asdf.find(modes[i], 0) == std::string::npos)
+		{
+			asdf += modes[i];
+			i++;
+		}
+		else
+			modes.erase(modes.begin() + i);
+	}
+}
+
 /*Syntax: MODE <channel> <modes> [mode params]*/
 int	Commands::mode(const User& user, const std::string buffer, std::vector<Channel> &channelList) const
 {
@@ -180,6 +196,8 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 	}
 	std::string modes(buff.substr(buff.find(' ', 1) + 1));	//everything after "MODE #channel "
 
+	removeModesDupes(modes);
+	std::string shortenedBuff = modes;
 	if (modes.empty() || modes == buff)	//' ' wasn't found in buff
 		return (sendNumericReply(user, emptyModeCommand(user, chan)));
 	//check if user is op
@@ -193,10 +211,10 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 	}
 
 	bool plus = false;
-	for (size_t i = 0; modes[i] && modes[i] != ' ';)
+	for (size_t i = 0; modes[i];)// && modes[i] != ' '
 	{
 		//check if it exists (it's a real mode)
-		if (modes[i] != 'i' && modes[i] != 't' && modes[i] != 'k' && modes[i] != 'l' && modes[i] != 'o' && modes[i] != '+' && modes[i] != '-')
+		if (modes[i] != 'i' && modes[i] != 't' && modes[i] != 'k' && modes[i] != 'l' && modes[i] != 'o' && modes[i] != '+' && modes[i] != '-' && modes[i] != ' ')
 		{
 			//needs the throw ERR_UNKNOWNMODE (472) instead if flag targets a channel(if flag == [i, t, k, l])
 			std::string UNKNOWNFLAG(S_ERR_UMODEUNKNOWNFLAG);
@@ -207,7 +225,7 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 		//check whether we're adding flags or removing them
 		if (modes[i] == '+' || modes[i] == '-')
 		{
-			if (modes[i] + 1 == '+' || modes[i] + 1 == '-')	//check for consecutive +/-
+			if (modes[i + 1] == '+' || modes[i + 1] == '-')	//check for consecutive +/-
 				return (-1);
 			if (modes[i] == '+')
 				plus = true;
@@ -228,7 +246,7 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 			}
 		}
 
-		std::string params(modes);
+		std::string params(modes);	//Any parameters that the modes might have (e.g. +-o <nickname>)
 		params = params.substr(params.find(' ') + 1);
 		switch (modes[i])
 		{
@@ -270,7 +288,9 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 					chan->flags.pswdIsSet.first = true;
 					size_t pos = params.find(' ');
 					if (pos != std::string::npos)
-						chan->flags.pswdIsSet.second = params.substr(0, pos - 1);
+						chan->flags.pswdIsSet.second = params.substr(0, pos);
+					else if (params == modes)
+						return (-1);
 					else
 						chan->flags.pswdIsSet.second = params;
 				}
@@ -284,10 +304,12 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 				std::string asdf;
 				if (pos != std::string::npos)
 					asdf = params.substr(0, pos);
+				else if (params == modes)	//No parameters provided when there should be
+						return (-1);
 				else
 					asdf = params;
 
-				std::cout << "operatorList.size() = " << chan->flags.operatorList.size() << std::endl;
+				// std::cout << "operatorList.size() = " << chan->flags.operatorList.size() << std::endl;
 
 				std::vector<User*> members = chan->getChanMembers();
 				for (std::vector<User*>::iterator it = members.begin(); it !=  members.end(); it++)
@@ -316,7 +338,7 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 								if ((*subiter)->nickname == asdf)
 								{
 									opList.erase(subiter);
-									std::cout << "size after:" << opList.size() << std::endl;
+									// std::cout << "size after:" << opList.size() << std::endl;
 									break ;
 								}
 							}
@@ -333,9 +355,16 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 				break ;
 			}
 			default:
+			{
+				if (modes[i] == ' ')
+					break ;
 				i++;
 				continue ;
+			}
 		}
+		//If we're finished (there are no more flags to handle), get out of the loop
+		if (modes[i] == ' ')
+			break ;
 		//erase the resolved flag from the string
 		for (std::string::iterator it = modes.begin(); it != modes.end(); it++)
 		{
@@ -358,7 +387,7 @@ int	Commands::mode(const User& user, const std::string buffer, std::vector<Chann
 			}
 		}
 	}
-	std::string reply(":" + user.nickname + " MODE" + buffer);
+	std::string reply(":" + user.nickname + " MODE " + chan->getChanName() + " " + shortenedBuff + "\r\n");
 	std::vector<User*> members = chan->getChanMembers();
 	for (std::vector<User*>::const_iterator it = members.begin(); it != members.end(); it++)
 		send((*it)->socket, reply.c_str(), reply.size(), 0);
