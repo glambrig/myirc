@@ -135,20 +135,35 @@ int	Commands::nick(User* user, const std::string buff, std::vector<User*> &userL
 	This function verifies that the command was sent with correct syntax.
 	'buff' is a substring containing everything after "USER".
 */
-int	Commands::parseUserBuff(const std::string &buff) const
+int	Commands::parseUserBuff(const std::string &buffer) const
 {
+	int a;
+	std::string buff(buffer.substr(0, buffer.size() - 2));
+
 	if (buff[0] != ' ' || buff.find(':', 0) == std::string::npos)
 		return (-1);
+	a = buff.find(':', 0) + 1;
+	for (int i = a; buff[i]; i++)
+	{
+		if (buff[i] == ' ')
+			return (-1);
+	}
+	if (buff[a] == '\0' || std::isalnum(buff[a]) == false)
+		return (-1);
+	a = buff.find(':', 0) - 1;
+	if (buff[a] != ' ')
+		return (-1);
 
+	int spaceCount = 0;
 	//Making sure there are exactly 4 spaces before :<realname>
-	for (int i = 0, spaceCount = 0; buff[i] && buff[i] != ':'; i++)
+	for (int i = 0; buff[i] && buff[i] != ':'; i++)
 	{
 		size_t pos = buff.find_first_not_of(' ', i);
 		if (buff[i] == ' ' && (pos != std::string::npos && buff[pos] != '\0'))
 			spaceCount++;
-		if (buff.begin() + i == buff.end() && spaceCount != 4)
-			return (-1);
 	}
+	if (spaceCount != 4)
+		return (-1);
 
 	//Username MUST have a length of at least 1
 	for (int i = 1, count = 0; buff[count]; i++)
@@ -177,7 +192,8 @@ int	Commands::user(User& user, std::string buff)
 	}
 	if (user.hasRegistered == true)
 	{
-		std::string ALREADYREGISTERED(S_ERR_ALREADYREGISTERED + ' ' + user.username + " USER : You may not reregister");
+		std::string ALREADYREGISTERED(S_ERR_ALREADYREGISTERED);
+		ALREADYREGISTERED += " " + user.username + " USER : You may not reregister";
 		return (sendNumericReply(user, ALREADYREGISTERED));
 	}
 	for (size_t i = 1; i < buff.size(); i++)
