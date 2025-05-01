@@ -1,4 +1,4 @@
-#include "Commands.hpp"
+#include "../inc/Commands.hpp"
 
 /*Commands specific to channel operators*/
 

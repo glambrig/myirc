@@ -16,7 +16,7 @@ CFLAGS = -lstdc++ -Wall -Wextra -Werror -g -std=c++98
 
 NAME = ircserv
 
-SRC = *.cpp
+SRC = ./src/*.cpp
 
 OBJ = $(SRC:.c=.o)
 
@@ -26,7 +26,7 @@ $(NAME): $(OBJ)
 	c++ $(SRC) -o $(NAME) $(CFLAGS)
 
 clean:
-	rm -rf *.o
+	rm -rf ./src/*.o
 
 fclean: clean
 	rm -rf $(NAME)

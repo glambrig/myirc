@@ -1,8 +1,8 @@
 #pragma once
 
-#include "User.hpp"
-#include "Commands.hpp"
-#include "Channel.hpp"
+#include "../inc/User.hpp"
+#include "../inc/Commands.hpp"
+#include "../inc/Channel.hpp"
 #include <vector>
 #include <stdlib.h>
 #include <ctype.h>

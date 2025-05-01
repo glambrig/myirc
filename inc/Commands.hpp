@@ -5,8 +5,8 @@
 #include <string>
 #include <list>
 #include <vector>
-#include "User.hpp"
-#include "Channel.hpp"
+#include "../inc/User.hpp"
+#include "../inc/Channel.hpp"
 
 #define RPL_WELCOME 001
 #define S_RPL_WELCOME "001"

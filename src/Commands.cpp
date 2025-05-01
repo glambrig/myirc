@@ -1,5 +1,5 @@
-#include "Commands.hpp"
-#include "Server.hpp"
+#include "../inc/Commands.hpp"
+#include "../inc/Server.hpp"
 
 Commands::Commands()
 {

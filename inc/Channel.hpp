@@ -5,7 +5,7 @@
 #include <vector>
 #include <utility>
 #include <ctime>
-#include "User.hpp"
+#include "../inc/User.hpp"
 
 typedef struct ModeFlags
 {

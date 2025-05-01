@@ -1,4 +1,4 @@
-#include "Server.hpp"
+#include "../inc/Server.hpp"
 #define MAX_CLIENTS 10
 
 Server::Server()

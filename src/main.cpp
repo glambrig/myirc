@@ -1,4 +1,4 @@
-#include "Server.hpp"
+#include "../inc/Server.hpp"
 #include <signal.h>
 
 void	ft_bzero(void *loc, size_t n)
